@@ -1,88 +1,94 @@
 <div align="center">
-  <h1 align="center">
-  Supasheet
-  </h1>
-  <h3 align="center"><strong>Turn any Supabase project into a real business platform.</strong></h3>
-  <p>Supasheet turns any Supabase project into a real business platform - an ERP, CRM, or admin platform, driven entirely by your schema. Auto-generated CRUD, multiple data views (grid, data grid, kanban, calendar, gallery, list, tree), built-in auth with MFA, RBAC and RLS enforced natively by Supabase Postgres, configurable dashboards, charts, AI chat, SQL editor, file storage, comments, templates, and audit logs. All in one open-source React app.</p>
-  <p>Try out Supasheet demo at <a href="https://jdydxqrxntcdrxhqqmuv.supasheet.app" target="_blank">jdydxqrxntcdrxhqqmuv.supasheet.app</a></p>
+  <h1>Atrium</h1>
+  <p><b>A B2B Client Portal with Database-Enforced Tenant Isolation.</b></p>
+  <a href="https://supabase.com/"><img src="https://img.shields.io/badge/Supabase-3ECF8E?style=flat-square&logo=supabase&logoColor=white" alt="Supabase" /></a>
+  <a href="https://www.postgresql.org/"><img src="https://img.shields.io/badge/PostgreSQL-316192?style=flat-square&logo=postgresql&logoColor=white" alt="PostgreSQL" /></a>
+  <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-20232A?style=flat-square&logo=react&logoColor=61DAFB" alt="React" /></a>
+  <a href="https://vitejs.dev/"><img src="https://img.shields.io/badge/Vite-B73BFE?style=flat-square&logo=vite&logoColor=FFD62E" alt="Vite" /></a>
 </div>
 
-<h1 align="center">
-   <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="public/images/bg-dark.png">
-   <img alt="supasheet" width="100%" src="public/images/bg-light.png">
-   </picture>
-</h1>
+<br />
 
-## Features
+## Overview
 
-Use it as an internal admin panel, or as the backend and UI for a CRM, ERP module, or B2B customer portal. RBAC, RLS, and audit trails are enforced by Supabase Postgres itself, so it's safe to build real business systems on top.
+Most multi-tenant applications enforce data isolation using application-layer filters (e.g., `WHERE org_id = ?`). This approach is fragile: a single missed `WHERE` clause on a new API endpoint exposes cross-tenant data.
 
-- **Authentication** — Sign in, sign up, MFA, password reset, OAuth providers
-- **User Management** — Create, invite, edit, and delete users via Supabase Admin API
-- **Authorization (RBAC)** — Role-based access control with user roles and role permissions
-- **Resource (CRUD)** — Auto-generated CRUD for any table, driven by Postgres schema metadata
-- **Data Views** — Grid, Data Grid, Kanban, Calendar, Gallery, List, Tree, and Single-record views per resource
-- **Form Sections** — Organize create/update forms into collapsible titled sections with per-mode field visibility
-- **Conditional Fields** — Field visibility, required state, and read-only state driven by other field values
-- **FK Behavior** — Auto-fill related fields and cascading dropdowns on foreign key selection
-- **Filter Templates** — Saved, named filter presets per resource
-- **Record Duplication** — Duplicate records with configurable field selection
-- **Dashboard** — Configurable dashboard widgets
-- **Analytics & Charts** — Area, bar, line, pie, radar chart types
-- **Reports** — Tabular reports built from Supabase data
-- **AI Chat** — Conversational interface for querying your data
-- **SQL Editor** — Run and save SQL snippets directly from the app
-- **Comments** — Per-record threaded comments and collaboration
-- **Templates** — Reusable record templates per resource
-- **Notifications** — In-app notification system
-- **File Storage** — Browse, upload, rename, move, and preview files across Supabase Storage buckets
-- **Audit Logs** — App-wide and per-record change history with filtering
+Atrium moves authorization into **PostgreSQL Row-Level Security (RLS)**. The frontend cannot bypass it, and the API cannot forget it.
 
-## Tech Stack
+## Architecture & Security Flow
 
-- **App:** React 19 + Vite
-- **Routing:** TanStack Router (file-based, type-safe)
-- **Data Fetching:** TanStack Query
-- **Forms:** TanStack Form
-- **Tables:** TanStack Table
-- **UI:** shadcn/ui (Base UI variant) + Tailwind CSS v4
-- **Rich Text:** Lexical
-- **Charts:** Recharts
-- **Backend:** Supabase (Auth, Database, Storage, Edge Functions)
+Every row in Atrium is tied to an `org_id`. When a user logs in, Supabase Auth (GoTrue) issues a JWT containing their `org_id` in the `app_metadata` claim. When the frontend requests data, PostgREST executes the query under the user's assigned database role, and PostgreSQL enforces the tenant boundary.
 
-## Getting Started
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant A as Supabase Auth
+    participant P as PostgREST
+    participant D as Postgres RLS
 
-1. Clone the repo and install dependencies:
+    C->>A: Login as priya@acme.example
+    A-->>C: JWT with app_metadata.org_id = Acme
+
+    C->>P: GET /projects?org_id=eq.Beta (Bearer Acme JWT)
+    P->>D: Run query as role client
+    Note over D: Policy: org_id must equal the org_id claim in the JWT
+    D-->>P: 0 rows (tenant mismatch)
+    P-->>C: 200 OK with empty array []
+```
+
+### The RLS Policy
+
+```sql
+create policy projects_client_select on public.projects
+  for select to client
+  using ( org_id = (select (auth.jwt() -> 'app_metadata' ->> 'org_id')::uuid) );
+```
+
+### Verification Proof
+
+If an authenticated user from Acme Corp queries data belonging to Beta Industries through a direct REST API call, the database returns an empty array. The isolation happens at the database level, not in the UI.
+
+<div align="center">
+  <img src="./docs/rls-isolation-proof.png" alt="Terminal proof of RLS returning empty array" width="800" />
+</div>
+
+## Local Development
+
+**Prerequisites:** Node.js 18+, Docker Desktop
 
 ```bash
-npm install
-```
+# 1. Clone and install dependencies
+git clone https://github.com/neorylet/atrium-portal.git
+cd atrium-portal
+npm ci
 
-2. Copy `.env.example` and fill in your Supabase credentials:
+# 2. Start the local database
+npx supabase start
 
-```bash
-cp .env.example .env.local
-```
+# 3. Add environment variables to .env.local
+#    VITE_SUPABASE_URL=http://127.0.0.1:54321
+#    VITE_SUPABASE_PUBLISHABLE_KEY=<key_from_supabase_start>
 
-```
-VITE_SUPABASE_URL=
-VITE_SUPABASE_ANON_KEY=
-```
-
-3. Run the development server:
-
-```bash
+# 4. Start the application
 npm run dev
 ```
 
-## Scripts
+> Never put the `service_role` key in `.env.local` or any `VITE_*` variable. Only the publishable (anon) key belongs in the frontend.
 
-```bash
-npx supabase start # Start local Supabase instance
-npm run dev        # Start dev server on port 3000
-npm run build      # Production build
-npm run typecheck  # TypeScript check
-npm run lint       # Oxlint
-npm run check      # Format + lint fix
-```
+## Demo Credentials
+
+The database seed creates two competing tenants to test the RLS boundaries. Passwords are supplied to the seed script through git-ignored environment variables and are not stored in this repository.
+
+| Role         | Email                 | Scope              |
+| ------------ | --------------------- | ------------------ |
+| Client (Acme) | `priya@acme.example`  | Acme rows only     |
+| Client (Beta) | `omar@beta.example`   | Beta rows only     |
+| Agency Admin  | `dana@atrium.example` | All tenants        |
+
+## Documentation
+
+The full threat model, architectural decisions, and schema specs are in the [Atrium Blueprint](./docs/atrium-blueprint.html).
+
+---
+
+<sub>UI powered by <a href="https://github.com/supasheet/supasheet">Supasheet</a> (Apache 2.0). See their original docs <a href="./SUPASHEET_README.md">here</a>.</sub>
