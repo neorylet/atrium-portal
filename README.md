@@ -91,4 +91,5 @@ The full threat model, architectural decisions, and schema specs are in the [Atr
 
 ---
 
-<sub>UI powered by <a href="https://github.com/supasheet/supasheet">Supasheet</a> (Apache 2.0). See their original docs <a href="./SUPASHEET_README.md">here</a>.</sub>
+<sub>UI powered by <a href="https://github.com/supasheet/supasheet">Supasheet</a> (Apache 2.0). See their original docs 
+<a href="./docs/SUPASHEET_README.md">here</a>.</sub>`
