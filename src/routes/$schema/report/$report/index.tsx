@@ -1,0 +1,209 @@
+import { useDeferredValue, useMemo } from "react"
+
+import { useSuspenseQuery } from "@tanstack/react-query"
+import {
+  Link,
+  createFileRoute,
+  notFound,
+  useRouter,
+} from "@tanstack/react-router"
+import type { ErrorComponentProps } from "@tanstack/react-router"
+
+import { AlertCircleIcon, FileXIcon } from "lucide-react"
+import z from "zod"
+
+import { DataTableSkeleton } from "#/components/data-table/data-table-skeleton"
+import { DefaultHeader } from "#/components/layouts/default-header"
+import { ReportPrintButton } from "#/components/report/report-print-button"
+import { ReportTable } from "#/components/report/report-table"
+import { Button } from "#/components/ui/button"
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "#/components/ui/empty"
+import { getFilterVariants } from "#/lib/columns"
+import { getTableQuery, validateTableSearch } from "#/lib/data-table-search"
+import type {
+  DatabaseSchemas,
+  DatabaseTables,
+  DatabaseViews,
+} from "#/lib/database-meta.types"
+import { formatTitle } from "#/lib/format"
+import { pageTitle } from "#/lib/page-title"
+import { columnsSchemaQueryOptions } from "#/lib/supabase/data/meta"
+import {
+  reportDataQueryOptions,
+  reportQueryOptions,
+} from "#/lib/supabase/data/report"
+
+export const Route = createFileRoute("/$schema/report/$report/")({
+  params: z.object({
+    schema: z.string<DatabaseSchemas>(),
+    report: z.string<DatabaseTables<DatabaseSchemas>>(),
+  }),
+  validateSearch: validateTableSearch,
+  loaderDeps: ({ search }) => ({ search }),
+  loader: async ({ context, params, deps: { search } }) => {
+    const [report, columnsSchema] = await Promise.all([
+      context.queryClient.query({
+        ...reportQueryOptions(params.schema, params.report),
+        staleTime: "static",
+      }),
+      context.queryClient.query({
+        ...columnsSchemaQueryOptions(params.schema, params.report),
+        staleTime: "static",
+      }),
+    ])
+
+    if (!report || !columnsSchema?.length) throw notFound()
+
+    context.queryClient.query({
+      ...reportDataQueryOptions(
+        params.schema,
+        params.report,
+        getTableQuery(search, getFilterVariants(null, columnsSchema))
+      ),
+      staleTime: "static",
+    })
+    return { columnsSchema }
+  },
+  head: ({ params }) => ({
+    meta: [{ title: pageTitle(`${formatTitle(params.report)} | Reports`) }],
+  }),
+  pendingComponent: () => {
+    const { schema, report } = Route.useParams()
+    return (
+      <>
+        <DefaultHeader
+          breadcrumbs={[
+            { title: "Report", url: `/${schema}/report` },
+            { title: formatTitle(report) },
+          ]}
+        />
+        <div className="flex flex-1 flex-col">
+          <div className="flex flex-col gap-4 px-4 py-4">
+            <DataTableSkeleton columnCount={5} />
+          </div>
+        </div>
+      </>
+    )
+  },
+  component: RouteComponent,
+  errorComponent: ({ error }: ErrorComponentProps) => {
+    const { schema, report } = Route.useParams()
+    const router = useRouter()
+    return (
+      <>
+        <DefaultHeader
+          breadcrumbs={[
+            { title: "Report", url: `/${schema}/report` },
+            { title: formatTitle(report) },
+          ]}
+        />
+        <div className="flex flex-1 items-center justify-center p-8">
+          <Empty>
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <AlertCircleIcon />
+              </EmptyMedia>
+              <EmptyTitle>Something went wrong</EmptyTitle>
+              <EmptyDescription>
+                {(error as Error)?.message ?? "An unexpected error occurred."}
+              </EmptyDescription>
+            </EmptyHeader>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => router.navigate({ to: `/${schema}/report` })}
+              >
+                Go Back
+              </Button>
+            </div>
+          </Empty>
+        </div>
+      </>
+    )
+  },
+  notFoundComponent: () => {
+    const { schema, report } = Route.useParams()
+    return (
+      <>
+        <DefaultHeader
+          breadcrumbs={[
+            { title: "Report", url: `/${schema}/report` },
+            { title: formatTitle(report) },
+          ]}
+        />
+        <div className="flex flex-1 items-center justify-center p-8">
+          <Empty>
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <FileXIcon />
+              </EmptyMedia>
+              <EmptyTitle>Report not found</EmptyTitle>
+              <EmptyDescription>
+                <Link to="/$schema/report" params={{ schema }}>
+                  Back to reports
+                </Link>
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        </div>
+      </>
+    )
+  },
+})
+
+function RouteComponent() {
+  const params = Route.useParams()
+  const search = Route.useSearch()
+
+  const { columnsSchema } = Route.useLoaderData()
+  const { data: report } = useSuspenseQuery(
+    reportQueryOptions(params.schema, params.report)
+  )
+  const liveTableQuery = useMemo(
+    () => getTableQuery(search, getFilterVariants(null, columnsSchema ?? [])),
+    [search, columnsSchema]
+  )
+  const tableQuery = useDeferredValue(liveTableQuery)
+  const { data: reportData } = useSuspenseQuery(
+    reportDataQueryOptions(params.schema, params.report, tableQuery)
+  )
+
+  const pageCount = Math.ceil((reportData?.count ?? 0) / tableQuery.perPage)
+
+  return (
+    <>
+      <DefaultHeader
+        breadcrumbs={[
+          { title: "Report", url: `/${params.schema}/report` },
+          { title: formatTitle(params.report) },
+        ]}
+      >
+        {report?.template && (
+          <ReportPrintButton
+            schema={params.schema}
+            viewName={params.report}
+            name={report.name}
+            rows={reportData?.result ?? []}
+          />
+        )}
+      </DefaultHeader>
+      <div className="flex flex-1 flex-col">
+        <div className="flex flex-col gap-4 px-4 py-4">
+          <ReportTable
+            data={reportData?.result ?? []}
+            columnsSchema={columnsSchema ?? []}
+            pageCount={pageCount}
+            filename={params.report}
+          />
+        </div>
+      </div>
+    </>
+  )
+}

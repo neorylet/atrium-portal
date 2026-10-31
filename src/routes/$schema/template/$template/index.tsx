@@ -1,0 +1,210 @@
+import { useDeferredValue, useMemo } from "react"
+
+import { useSuspenseQuery } from "@tanstack/react-query"
+import {
+  Link,
+  createFileRoute,
+  notFound,
+  useRouter,
+} from "@tanstack/react-router"
+import type { ErrorComponentProps } from "@tanstack/react-router"
+
+import { AlertCircleIcon, FileXIcon, LayoutTemplateIcon } from "lucide-react"
+import z from "zod"
+
+import { DataTableSkeleton } from "#/components/data-table/data-table-skeleton"
+import { DefaultHeader } from "#/components/layouts/default-header"
+import { ReportTable } from "#/components/report/report-table"
+import { ApplyTemplateDialog } from "#/components/template/apply-template-dialog"
+import { Button } from "#/components/ui/button"
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "#/components/ui/empty"
+import { getFilterVariants } from "#/lib/columns"
+import { getTableQuery, validateTableSearch } from "#/lib/data-table-search"
+import type {
+  DatabaseSchemas,
+  DatabaseTables,
+  DatabaseViews,
+} from "#/lib/database-meta.types"
+import { formatTitle } from "#/lib/format"
+import { pageTitle } from "#/lib/page-title"
+import { columnsSchemaQueryOptions } from "#/lib/supabase/data/meta"
+import {
+  templateDataQueryOptions,
+  templatesQueryOptions,
+} from "#/lib/supabase/data/template"
+
+export const Route = createFileRoute("/$schema/template/$template/")({
+  params: z.object({
+    schema: z.string<DatabaseSchemas>(),
+    template: z.string<DatabaseTables<DatabaseSchemas>>(),
+  }),
+  validateSearch: validateTableSearch,
+  loaderDeps: ({ search }) => ({ search }),
+  loader: async ({ context, params, deps: { search } }) => {
+    const [templates, columnsSchema] = await Promise.all([
+      context.queryClient.query({
+        ...templatesQueryOptions(params.schema),
+        staleTime: "static",
+      }),
+      context.queryClient.query({
+        ...columnsSchemaQueryOptions(params.schema, params.template),
+        staleTime: "static",
+      }),
+    ])
+
+    const template = templates.find((t) => t.view_name === params.template)
+    if (!template || !columnsSchema?.length) throw notFound()
+
+    context.queryClient.query({
+      ...templateDataQueryOptions(
+        params.schema,
+        params.template,
+        getTableQuery(search, getFilterVariants(null, columnsSchema))
+      ),
+      staleTime: "static",
+    })
+    return { columnsSchema, template }
+  },
+  head: ({ params }) => ({
+    meta: [{ title: pageTitle(`${formatTitle(params.template)} | Templates`) }],
+  }),
+  pendingComponent: () => {
+    const { schema, template } = Route.useParams()
+    return (
+      <>
+        <DefaultHeader
+          breadcrumbs={[
+            { title: "Template", url: `/${schema}/template` },
+            { title: formatTitle(template) },
+          ]}
+        />
+        <div className="flex flex-1 flex-col">
+          <div className="flex flex-col gap-4 px-4 py-4">
+            <DataTableSkeleton columnCount={5} />
+          </div>
+        </div>
+      </>
+    )
+  },
+  component: RouteComponent,
+  errorComponent: ({ error }: ErrorComponentProps) => {
+    const { schema, template } = Route.useParams()
+    const router = useRouter()
+    return (
+      <>
+        <DefaultHeader
+          breadcrumbs={[
+            { title: "Template", url: `/${schema}/template` },
+            { title: formatTitle(template) },
+          ]}
+        />
+        <div className="flex flex-1 items-center justify-center p-8">
+          <Empty>
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <AlertCircleIcon />
+              </EmptyMedia>
+              <EmptyTitle>Something went wrong</EmptyTitle>
+              <EmptyDescription>
+                {(error as Error)?.message ?? "An unexpected error occurred."}
+              </EmptyDescription>
+            </EmptyHeader>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => router.navigate({ to: `/${schema}/template` })}
+              >
+                Go Back
+              </Button>
+            </div>
+          </Empty>
+        </div>
+      </>
+    )
+  },
+  notFoundComponent: () => {
+    const { schema, template } = Route.useParams()
+    return (
+      <>
+        <DefaultHeader
+          breadcrumbs={[
+            { title: "Template", url: `/${schema}/template` },
+            { title: formatTitle(template) },
+          ]}
+        />
+        <div className="flex flex-1 items-center justify-center p-8">
+          <Empty>
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <FileXIcon />
+              </EmptyMedia>
+              <EmptyTitle>Template not found</EmptyTitle>
+              <EmptyDescription>
+                <Link to="/$schema/template" params={{ schema }}>
+                  Back to templates
+                </Link>
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        </div>
+      </>
+    )
+  },
+})
+
+function RouteComponent() {
+  const params = Route.useParams()
+  const search = Route.useSearch()
+
+  const { columnsSchema, template } = Route.useLoaderData()
+  const liveTableQuery = useMemo(
+    () => getTableQuery(search, getFilterVariants(null, columnsSchema ?? [])),
+    [search, columnsSchema]
+  )
+  const tableQuery = useDeferredValue(liveTableQuery)
+  const { data: templateData } = useSuspenseQuery(
+    templateDataQueryOptions(params.schema, params.template, tableQuery)
+  )
+
+  const pageCount = Math.ceil((templateData?.count ?? 0) / tableQuery.perPage)
+
+  return (
+    <>
+      <DefaultHeader
+        breadcrumbs={[
+          { title: "Template", url: `/${params.schema}/template` },
+          { title: formatTitle(params.template) },
+        ]}
+      >
+        <ApplyTemplateDialog
+          schema={params.schema}
+          templateName={params.template}
+          defaultTargetTable={template.target_table}
+          trigger={
+            <Button size="sm">
+              <LayoutTemplateIcon className="mr-1.5 size-3.5" />
+              Apply to Table
+            </Button>
+          }
+        />
+      </DefaultHeader>
+      <div className="flex flex-1 flex-col">
+        <div className="flex flex-col gap-4 px-4 py-4">
+          <ReportTable
+            data={templateData?.result ?? []}
+            columnsSchema={columnsSchema ?? []}
+            pageCount={pageCount}
+            filename={params.template}
+          />
+        </div>
+      </div>
+    </>
+  )
+}

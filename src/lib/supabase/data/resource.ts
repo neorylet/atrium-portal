@@ -1,0 +1,498 @@
+import { mutationOptions, queryOptions } from "@tanstack/react-query"
+
+import type { TableQuery } from "#/lib/data-table-search"
+import type {
+  DatabaseSchemas,
+  DatabaseTables,
+  DatabaseViews,
+  JoinClause,
+  TableMetadata,
+} from "#/lib/database-meta.types"
+import { supabase } from "#/lib/supabase/client"
+import { applyFilterRules, applyFilters } from "#/lib/supabase/filter"
+
+function buildJoinsSelect(resource: string, join: JoinClause[] | undefined) {
+  return (
+    join
+      ?.map((j) => {
+        const target = j.table === resource ? j.on : `${j.table}!${j.on}`
+        return `,${j.alias ? `${j.alias}:` : ""}${target}(${j.columns.join(",")})`
+      })
+      .join("") ?? ""
+  )
+}
+
+export const resourceDataQueryOptions = <S extends DatabaseSchemas>(
+  schema: S,
+  resource: DatabaseTables<S> | DatabaseViews<S>,
+  defaultQuery: TableMetadata["query"],
+  tableQuery: Partial<TableQuery> = {}
+) =>
+  queryOptions({
+    queryKey: ["supasheet", "resource-data", schema, resource, tableQuery],
+    queryFn: async () => {
+      const joins = buildJoinsSelect(resource, defaultQuery?.join)
+
+      let query = supabase
+        .schema(schema)
+        .from(resource)
+        .select((defaultQuery?.select?.join(",") ?? "*") + joins, {
+          count: "exact",
+        })
+
+      const { page, perPage, sorting, filters = [], joinOperator } = tableQuery
+
+      if (page && perPage) {
+        query = query.range((page - 1) * perPage, page * perPage - 1)
+      }
+
+      if (sorting?.length) {
+        for (const sort of sorting) {
+          query = query.order(sort.id, { ascending: !sort.desc })
+        }
+      } else if (defaultQuery?.sort?.length) {
+        for (const s of defaultQuery.sort) {
+          query = query.order(s.id, { ascending: !s.desc })
+        }
+      }
+
+      query = applyFilterRules(query, defaultQuery?.filter ?? [])
+      query = applyFilters(query, filters, joinOperator)
+
+      const { data, count, error } = await query
+      if (error) throw error
+
+      return {
+        result: (data ?? []) as unknown as Record<string, unknown>[],
+        count: count,
+      }
+    },
+    staleTime: 1000 * 60 * 2,
+  })
+
+export const foreignTableDataQueryOptions = <S extends DatabaseSchemas>(
+  schema: S,
+  resource: DatabaseTables<S> | DatabaseViews<S>,
+  parentResource: DatabaseTables<S> | DatabaseViews<S>,
+  parentColumn: string,
+  parentValue: unknown,
+  defaultQuery?: TableMetadata["query"],
+  selectClause?: string,
+  tableQuery: Partial<TableQuery> = {}
+) =>
+  queryOptions({
+    queryKey: [
+      "supasheet",
+      "resource-data",
+      schema,
+      resource,
+      "foreign",
+      parentResource,
+      parentColumn,
+      parentValue,
+      defaultQuery,
+      selectClause,
+      tableQuery,
+    ],
+    queryFn: async () => {
+      const joins = buildJoinsSelect(resource, defaultQuery?.join)
+
+      const baseSelect = selectClause ?? defaultQuery?.select?.join(",") ?? "*"
+
+      let query = supabase
+        .schema(schema)
+        .from(resource)
+        .select(baseSelect + joins, { count: "exact" })
+        .eq(parentColumn as never, parentValue as never)
+
+      const { page, perPage, sorting, filters = [], joinOperator } = tableQuery
+
+      if (page && perPage) {
+        query = query.range((page - 1) * perPage, page * perPage - 1)
+      }
+
+      if (sorting?.length) {
+        for (const sort of sorting) {
+          query = query.order(sort.id, { ascending: !sort.desc })
+        }
+      } else if (defaultQuery?.sort?.length) {
+        for (const s of defaultQuery.sort) {
+          query = query.order(s.id, { ascending: !s.desc })
+        }
+      }
+
+      query = applyFilterRules(query, defaultQuery?.filter ?? [])
+      query = applyFilters(query, filters, joinOperator)
+
+      const { data, count, error } = await query
+      if (error) throw error
+
+      return {
+        result: (data ?? []) as unknown as Record<string, unknown>[],
+        count: count,
+      }
+    },
+    staleTime: 1000 * 60 * 2,
+  })
+
+export const singleResourceDataQueryOptions = <S extends DatabaseSchemas>(
+  schema: S,
+  resource: DatabaseTables<S> | DatabaseViews<S>,
+  pk: Record<string, unknown>,
+  defaultQuery?: TableMetadata["query"]
+) =>
+  queryOptions({
+    queryKey: [
+      "supasheet",
+      "resource-data",
+      schema,
+      resource,
+      "single",
+      pk,
+      defaultQuery?.join ?? null,
+    ],
+    queryFn: async () => {
+      const joins = buildJoinsSelect(resource, defaultQuery?.join)
+
+      let query = supabase
+        .schema(schema)
+        .from(resource)
+        .select("*" + joins)
+      for (const [col, val] of Object.entries(pk)) {
+        query = query.eq(col as never, val as never)
+      }
+      const { data, error } = await query.maybeSingle()
+      if (error) throw error
+
+      return data ?? (null as Record<string, unknown> | null)
+    },
+    staleTime: 0,
+  })
+
+export const singleForeignTableDataQueryOptions = <S extends DatabaseSchemas>(
+  schema: S,
+  resource: DatabaseTables<S> | DatabaseViews<S>,
+  match: Record<string, unknown>
+) =>
+  queryOptions({
+    queryKey: [
+      "supasheet",
+      "resource-data",
+      schema,
+      resource,
+      "single-foreign",
+      match,
+    ],
+    queryFn: async () => {
+      let query = supabase.schema(schema).from(resource).select("*")
+      for (const [col, val] of Object.entries(match)) {
+        query = query.eq(col as never, val as never)
+      }
+      const { data, error } = await query.maybeSingle()
+      if (error) throw error
+
+      return data ?? (null as Record<string, unknown> | null)
+    },
+    staleTime: 0,
+  })
+
+export const insertResourceMutationOptions = <S extends DatabaseSchemas>(
+  schema: S,
+  resource: DatabaseTables<S> | DatabaseViews<S>
+) =>
+  mutationOptions({
+    mutationFn: async (row: Record<string, unknown>) => {
+      const { data, error } = await supabase
+        .schema(schema)
+        .from(resource)
+        .insert(row as never)
+        .select()
+        .single()
+      if (error) throw error
+      return data as Record<string, unknown> | null
+    },
+  })
+
+export const insertBulkResourceMutationOptions = <S extends DatabaseSchemas>(
+  schema: S,
+  resource: DatabaseTables<S> | DatabaseViews<S>
+) =>
+  mutationOptions({
+    mutationFn: async (rows: Record<string, unknown>[]) => {
+      const { error } = await supabase
+        .schema(schema)
+        .from(resource)
+        .insert(rows as never)
+      if (error) throw error
+    },
+  })
+
+export const updateResourceMutationOptions = <S extends DatabaseSchemas>(
+  schema: S,
+  resource: DatabaseTables<S> | DatabaseViews<S>
+) =>
+  mutationOptions({
+    mutationFn: async ({
+      pk,
+      data,
+    }: {
+      pk: Record<string, unknown>
+      data: Record<string, unknown>
+    }) => {
+      let query = supabase
+        .schema(schema)
+        .from(resource)
+        .update(data as never)
+        .select()
+      for (const [col, val] of Object.entries(pk)) {
+        query = query.eq(col as never, val as never)
+      }
+      const { data: updated, error } = await query
+      if (error) throw error
+      if (!updated || updated.length === 0) {
+        throw new Error(
+          "Update failed: you may not have permission to modify this record"
+        )
+      }
+    },
+  })
+
+export const deleteResourceMutationOptions = <S extends DatabaseSchemas>(
+  schema: S,
+  resource: DatabaseTables<S> | DatabaseViews<S>
+) =>
+  mutationOptions({
+    mutationFn: async (pk: Record<string, unknown>) => {
+      let query = supabase.schema(schema).from(resource).delete().select()
+      for (const [col, val] of Object.entries(pk)) {
+        query = query.eq(col as never, val as never)
+      }
+      const { data, error } = await query
+      if (error) throw error
+      if (!data || data.length === 0) {
+        throw new Error(
+          "Delete failed: you may not have permission to delete this record"
+        )
+      }
+    },
+  })
+
+export const deleteBulkResourceMutationOptions = <S extends DatabaseSchemas>(
+  schema: S,
+  resource: DatabaseTables<S> | DatabaseViews<S>
+) =>
+  mutationOptions({
+    mutationFn: async (pks: Record<string, unknown>[]) => {
+      if (pks.length === 0) return
+      const keys = Object.keys(pks[0])
+
+      if (keys.length === 1) {
+        const col = keys[0]
+        const values = pks.map((pk) => pk[col])
+        const { data, error } = await supabase
+          .schema(schema)
+          .from(resource)
+          .delete()
+          .select()
+          .in(col as never, values)
+        if (error) throw error
+        if (!data || data.length < pks.length) {
+          throw new Error(
+            "Delete failed: you may not have permission to delete some records"
+          )
+        }
+        return
+      }
+
+      const results = await Promise.all(
+        pks.map(async (pk) => {
+          let query = supabase.schema(schema).from(resource).delete().select()
+          for (const [col, val] of Object.entries(pk)) {
+            query = query.eq(col as never, val as never)
+          }
+          const { data, error } = await query
+          if (error) throw error
+          return !!data && data.length > 0
+        })
+      )
+      if (results.some((deleted) => !deleted)) {
+        throw new Error(
+          "Delete failed: you may not have permission to delete some records"
+        )
+      }
+    },
+  })
+
+export type ResourceAuditLog = {
+  id: string
+  created_at: string
+  operation: string
+  schema_name: string
+  table_name: string
+  record_id: string | null
+  created_by: string | null
+  role: string | null
+  user_type: string
+  metadata: Record<string, unknown> | null
+  old_data: Record<string, unknown> | null
+  new_data: Record<string, unknown> | null
+  changed_fields: string[] | null
+  is_error: boolean
+  error_message: string | null
+  error_code: string | null
+  created_by_name: string | null
+  created_by_email: string | null
+  created_by_picture_url: string | null
+}
+
+export const resourceAuditLogsQueryOptions = (
+  schema: string,
+  resource: string,
+  recordId?: string
+) =>
+  queryOptions({
+    queryKey: ["supasheet", "resource-audit-logs", schema, resource, recordId],
+    queryFn: async () => {
+      let query = supabase
+        .schema("supasheet")
+        .from("audit_logs")
+        .select(
+          "*, ...users(created_by_name:name, created_by_email:email, created_by_picture_url:picture_url)"
+        )
+        .eq("schema_name", schema)
+        .eq("table_name", resource)
+        .order("created_at", { ascending: false })
+
+      if (recordId) {
+        query = query.eq("record_id", recordId)
+      }
+
+      const { data, error } = await query
+      if (error) throw error
+
+      return (data ?? []) as ResourceAuditLog[]
+    },
+  })
+
+export type ResourceComment = {
+  id: string
+  created_at: string
+  updated_at: string
+  deleted_at: string | null
+  schema_name: string
+  table_name: string
+  record_id: string
+  content: string | null
+  created_by: string | null
+  created_by_name: string | null
+  created_by_email: string | null
+  created_by_picture_url: string | null
+}
+
+export const resourceCommentsQueryOptions = (
+  schema: string,
+  resource: string,
+  recordId: string
+) =>
+  queryOptions({
+    queryKey: ["supasheet", "resource-comments", schema, resource, recordId],
+    queryFn: async () => {
+      const { data, error } = await supabase.schema("supasheet").rpc(
+        "get_comments" as never,
+        {
+          p_schema: schema,
+          p_table: resource,
+          p_record_id: recordId,
+        } as never
+      )
+      if (error) throw error
+      return data ?? []
+    },
+  })
+
+export const insertCommentMutationOptions = () =>
+  mutationOptions({
+    mutationFn: async (payload: {
+      schema_name: string
+      table_name: string
+      record_id: string
+      content: string
+      created_by: string
+    }) => {
+      const { error } = await supabase
+        .schema("supasheet")
+        .from("comments" as never)
+        .insert(payload as never)
+      if (error) throw error
+    },
+  })
+
+export const updateCommentMutationOptions = () =>
+  mutationOptions({
+    mutationFn: async ({ id, content }: { id: string; content: string }) => {
+      const { error } = await supabase
+        .schema("supasheet")
+        .from("comments" as never)
+        .update({ content, updated_at: new Date().toISOString() } as never)
+        .eq("id", id)
+      if (error) throw error
+    },
+  })
+
+export const deleteCommentMutationOptions = () =>
+  mutationOptions({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .schema("supasheet")
+        .from("comments" as never)
+        .delete()
+        .eq("id", id)
+      if (error) throw error
+    },
+  })
+
+export type ResourceActionRow<S extends DatabaseSchemas = DatabaseSchemas> = {
+  schema: S
+  name: string
+  arguments: string
+  comment: string | null
+}
+
+export const resourceActionsQueryOptions = <S extends DatabaseSchemas>(
+  schema: S,
+  resource: DatabaseTables<S> | DatabaseViews<S>
+) =>
+  queryOptions({
+    queryKey: ["supasheet", "resource-actions", schema, resource],
+    queryFn: async () => {
+      const args: { p_schema: string; p_resource: string } = {
+        p_schema: schema,
+        p_resource: resource,
+      }
+      const { data, error } = await supabase
+        .schema("supasheet")
+        .rpc("get_actions", args)
+      if (error) throw error
+      return (data ?? []) as unknown as ResourceActionRow<S>[]
+    },
+    staleTime: 1000 * 60 * 5,
+  })
+
+export const runResourceActionMutationOptions = () =>
+  mutationOptions({
+    mutationFn: async ({
+      schema,
+      functionName,
+      params,
+    }: {
+      schema: DatabaseSchemas
+      functionName: string
+      params: Record<string, unknown>
+    }) => {
+      const { data, error } = await supabase
+        .schema(schema)
+        .rpc(functionName as never, params as never)
+      if (error) throw error
+      return data
+    },
+  })

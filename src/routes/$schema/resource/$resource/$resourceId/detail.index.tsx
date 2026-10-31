@@ -1,0 +1,84 @@
+import { useSuspenseQuery } from "@tanstack/react-query"
+import { createFileRoute, getRouteApi, notFound } from "@tanstack/react-router"
+
+import { ResourceFullDetail } from "#/components/resource/detail/resource-full-detail"
+import { ResourceUpdateForm } from "#/components/resource/resource-update-form"
+import { useHasPermission } from "#/hooks/use-permissions"
+import { columnsSchemaQueryOptions } from "#/lib/supabase/data/meta"
+import { singleResourceDataQueryOptions } from "#/lib/supabase/data/resource"
+
+const parentRoute = getRouteApi(
+  "/$schema/resource/$resource/$resourceId/detail"
+)
+
+export const Route = createFileRoute(
+  "/$schema/resource/$resource/$resourceId/detail/"
+)({
+  loader: async ({ context, params }) => {
+    const { schema, resource, resourceId } = params
+
+    const primaryKeys = context.tableSchema?.primary_keys ?? []
+    const pkName = primaryKeys[0]?.name ?? "id"
+    const pk = { [pkName]: resourceId }
+    const record = await context.queryClient.query({
+      ...singleResourceDataQueryOptions(schema, resource, pk),
+      staleTime: "static",
+    })
+    if (!record) throw notFound()
+
+    const updateColumnsSchema = await context.queryClient.query({
+      ...columnsSchemaQueryOptions(schema, resource, "update"),
+      staleTime: "static",
+    })
+
+    return { updateColumnsSchema }
+  },
+  component: RouteComponent,
+})
+
+function RouteComponent() {
+  const { schema, resource, resourceId } = Route.useParams()
+  const { pkName, primaryKeys } = parentRoute.useLoaderData()
+  const { updateColumnsSchema } = Route.useLoaderData()
+  const { tableSchema, columnsSchema } = Route.useRouteContext()
+
+  const pk = { [pkName]: resourceId }
+  const { data: record } = useSuspenseQuery(
+    singleResourceDataQueryOptions(schema, resource, pk)
+  )
+
+  const { authUser, privileges } = Route.useRouteContext()
+  const hasUpdatePermission = useHasPermission({
+    schema,
+    resource,
+    action: "update",
+  })
+  const hasUpdatePrivilege = !!privileges?.includes("update")
+  const canUpdate = authUser
+    ? hasUpdatePermission && hasUpdatePrivilege
+    : hasUpdatePrivilege
+
+  if (!record) return null
+
+  const canEdit = !!tableSchema && primaryKeys.length > 0 && canUpdate
+
+  if (canEdit) {
+    return (
+      <ResourceUpdateForm
+        columnsSchema={updateColumnsSchema}
+        primaryKeys={primaryKeys}
+        record={record}
+        tableSchema={tableSchema}
+        saveOnly
+      />
+    )
+  }
+
+  return (
+    <ResourceFullDetail
+      resourceSchema={tableSchema}
+      columnsSchema={columnsSchema}
+      record={record}
+    />
+  )
+}
