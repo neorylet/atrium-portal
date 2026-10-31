@@ -17,6 +17,8 @@ grant "x-admin" to authenticator;
 -- Grant schema usage and JWT execution rights
 grant usage on schema public to client, "x-admin";
 grant usage on schema auth to client, "x-admin";
+grant usage on schema supasheet to authenticator, anon, authenticated, service_role;
+grant usage on schema supasheet to client, "x-admin";
 grant execute on function auth.jwt() to client, "x-admin";
 
 -- Revoke default access ONLY from the built-in Supabase roles

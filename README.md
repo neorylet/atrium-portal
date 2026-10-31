@@ -77,13 +77,13 @@ npm run dev
 
 ## Demo Credentials
 
-The database seed creates two competing tenants to test the RLS boundaries. Passwords are supplied to the seed script through git-ignored environment variables and are not stored in this repository.
+The database seed creates two competing tenants to test the RLS boundaries.
 
-| Role         | Email                 | Scope              |
-| ------------ | --------------------- | ------------------ |
-| Client (Acme) | `priya@acme.example`  | Acme rows only     |
-| Client (Beta) | `omar@beta.example`   | Beta rows only     |
-| Agency Admin  | `dana@atrium.example` | All tenants        |
+| Role         | Email                 | Password          | Scope              |
+| ------------ | --------------------- | ----------------- | ------------------ |
+| Client (Acme) | `priya@acme.example`  | `password123456`  | Acme rows only     |
+| Client (Beta) | `omar@beta.example`   | `password123456`  | Beta rows only     |
+| Agency Admin  | `dana@atrium.example` | `password123456`  | All tenants        |
 
 ## Documentation
 
