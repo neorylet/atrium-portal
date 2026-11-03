@@ -1,6 +1,1 @@
--- Ensure a profile exists for the logged-in user
-INSERT INTO supasheet.users (id, email, name)
-SELECT id, email, 'Dana Okafor' 
-FROM auth.users 
-WHERE email = 'dana@atrium.example'
-ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA supasheet TO anon, authenticated, client, "x-admin";

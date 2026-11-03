@@ -40,4 +40,6 @@ grant select, insert, update, delete on public.projects to "x-admin";
 grant select, insert, update, delete on public.deliverables to "x-admin";
 grant select, insert, update, delete on public.invoices to "x-admin";
 
+grant execute on all functions in schema supasheet to anon, authenticated, client, "x-admin";
+
 select supasheet.refresh_metadata();
