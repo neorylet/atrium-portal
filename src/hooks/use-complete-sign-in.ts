@@ -21,6 +21,7 @@ export function useCompleteSignIn(redirect?: string) {
       navigate({ to: "/auth/mfa", replace: true })
       return
     }
-    navigate({ to: safeRedirect, replace: true })
+    // Force full page reload to clear router state and prevent 404 on account switch
+    window.location.href = safeRedirect
   }
 }

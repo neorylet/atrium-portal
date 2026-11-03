@@ -58,8 +58,8 @@ export function NavUser() {
 
   async function handleSignOut() {
     await supabase.auth.signOut()
-    queryClient.setQueryData(authUserQueryOptions.queryKey, null)
-    navigate({ to: "/auth/sign-in", replace: true })
+    queryClient.clear()
+    window.location.href = "/"
   }
 
   return (

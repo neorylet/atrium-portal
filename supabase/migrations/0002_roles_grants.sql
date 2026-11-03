@@ -3,10 +3,10 @@
 -- Create roles if they don't exist
 do $$ begin
   if not exists (select 1 from pg_roles where rolname = 'client') then
-    create role client nologin noinherit;
+    create role client nologin;
   end if;
   if not exists (select 1 from pg_roles where rolname = 'x-admin') then
-    create role "x-admin" nologin noinherit;
+    create role "x-admin" nologin;
   end if;
 end $$;
 

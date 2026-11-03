@@ -1,1 +1,1 @@
-GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA supasheet TO anon, authenticated, client, "x-admin";
+SELECT id, name, org_id FROM public.projects;

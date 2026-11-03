@@ -1,18 +1,22 @@
 -- supabase/seed.sql
--- Note: We use crypt() to hash a dummy password 'password123456' for the demo accounts.
+-- Wipe existing data to ensure a clean slate on db reset
+TRUNCATE TABLE public.invoices, public.deliverables, public.projects, public.organisations CASCADE;
 
 insert into public.organisations (id, name, slug, billing_email) values
   ('a0000000-0000-4000-8000-000000000001', 'Acme Corp', 'acme-corp', 'billing@acme.example'),
   ('a0000000-0000-4000-8000-000000000002', 'Beta Industries', 'beta-industries', 'billing@beta.example')
 on conflict (id) do nothing;
 
--- Insert Users into auth.users (Publishable seed)
+-- Insert Users into auth.users
+-- CRITICAL: We added "role":"client" to Priya and Omar's raw_app_meta_data so the JWT hook works.
 insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, confirmation_token, recovery_token, email_change, email_change_token_new)
 values
-  ('00000000-0000-0000-0000-000000000000', 'c0000000-0000-4000-8000-000000000001', 'authenticated', 'client', 'priya@acme.example', crypt('password123456', gen_salt('bf')), now(), '{"provider":"email","providers":["email"],"org_id":"a0000000-0000-4000-8000-000000000001"}', '{}', now(), now(), '', '', '', ''),
-  ('00000000-0000-0000-0000-000000000000', 'c0000000-0000-4000-8000-000000000002', 'authenticated', 'client', 'omar@beta.example', crypt('password123456', gen_salt('bf')), now(), '{"provider":"email","providers":["email"],"org_id":"a0000000-0000-4000-8000-000000000002"}', '{}', now(), now(), '', '', '', ''),
+  ('00000000-0000-0000-0000-000000000000', 'c0000000-0000-4000-8000-000000000001', 'authenticated', 'client', 'priya@acme.example', crypt('password123456', gen_salt('bf')), now(), '{"provider":"email","providers":["email"],"org_id":"a0000000-0000-4000-8000-000000000001","role":"client"}', '{}', now(), now(), '', '', '', ''),
+  ('00000000-0000-0000-0000-000000000000', 'c0000000-0000-4000-8000-000000000002', 'authenticated', 'client', 'omar@beta.example', crypt('password123456', gen_salt('bf')), now(), '{"provider":"email","providers":["email"],"org_id":"a0000000-0000-4000-8000-000000000002","role":"client"}', '{}', now(), now(), '', '', '', ''),
   ('00000000-0000-0000-0000-000000000000', 'c0000000-0000-4000-8000-000000000003', 'authenticated', 'x-admin', 'dana@atrium.example', crypt('password123456', gen_salt('bf')), now(), '{"provider":"email","providers":["email"],"role":"x-admin"}', '{}', now(), now(), '', '', '', '')
-on conflict (id) do nothing;
+on conflict (id) do update set 
+  encrypted_password = excluded.encrypted_password,
+  raw_app_meta_data = excluded.raw_app_meta_data;
 
 -- Insert Identities
 insert into auth.identities (id, user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at)
@@ -43,26 +47,27 @@ insert into public.invoices (id, org_id, project_id, invoice_number, status, amo
   ('e0000000-0000-4000-8000-000000000002', 'a0000000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000004', 'ATR-2026-0002', 'overdue', 777700)
 on conflict (id) do nothing;
 
--- Grant access to Supasheet internal tables for app boot (runs after all migrations)
+-- Supasheet internal user profiles (MUST match the auth.users IDs)
+insert into supasheet.users (id, email, name) values 
+  ('c0000000-0000-4000-8000-000000000001', 'priya@acme.example', 'Priya Raman'), 
+  ('c0000000-0000-4000-8000-000000000002', 'omar@beta.example', 'Omar'), 
+  ('c0000000-0000-4000-8000-000000000003', 'dana@atrium.example', 'Dana Okafor')
+on conflict (id) do update set email = excluded.email, name = excluded.name;
+
+-- Supasheet grants and configs
 grant usage on schema supasheet to anon, authenticated, client, "x-admin";
 grant select on supasheet.configs to anon, authenticated, client, "x-admin";
 grant select on supasheet.users to authenticated, client, "x-admin";
+grant execute on all functions in schema supasheet to anon, authenticated, client, "x-admin";
+grant select on storage.buckets to client, "x-admin";
+grant select on storage.objects to client, "x-admin";
 
--- Allow custom roles to read their own profile from supasheet.users
 drop policy if exists users_read_custom_roles on supasheet.users;
 create policy users_read_custom_roles on supasheet.users for select to client, "x-admin"
   using (id = auth.uid());
 
--- Seed the basic app configuration
 INSERT INTO supasheet.configs (key, value, description, is_public)
 VALUES 
   ('app.name', '"Atrium Portal"', 'Application display name', true),
   ('app.description', '"A clear pane between agency and client."', 'Shown on the sign-in page', true)
 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
-
--- Supasheet internal user profiles
-insert into supasheet.users (id, email, name) values 
-  ('c0000000-0000-4000-8000-000000000001', 'priya@acme.example', 'Priya Raman'), 
-  ('c0000000-0000-4000-8000-000000000002', 'omar@beta.example', 'Omar'), 
-  ('c0000000-0000-4000-8000-000000000003', 'dana@atrium.example', 'Dana Okafor')
-on conflict (id) do nothing;
