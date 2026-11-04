@@ -9,11 +9,12 @@ export function TextField({ columnMetadata }: FieldProps) {
   const field = useFieldContext<unknown>()
 
   const placeholder =
-    field.state.value === "" && columnMetadata.defaultValue
+    columnMetadata.placeholder ??
+    (field.state.value === "" && columnMetadata.defaultValue
       ? "DEFAULT VALUE"
       : field.state.value === null
         ? "NULL"
-        : "EMPTY"
+        : "EMPTY")
 
   return (
     <ButtonGroup className="w-full">

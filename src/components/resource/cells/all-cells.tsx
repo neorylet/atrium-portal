@@ -1,5 +1,11 @@
 import { memo } from "react"
 
+import { formatDate } from "#/lib/format"
+import {
+  formatCountryLabel,
+  formatCurrencyLabel,
+  formatTimezoneLabel,
+} from "#/lib/geo-data"
 import type { ColumnFieldMetadata, FileObject } from "#/types/fields"
 
 import { AvatarCell } from "./avatar-cell"
@@ -42,6 +48,12 @@ export const AllCells = memo(function ({
       )
     case "money":
       return value ? `${value}` : ""
+    case "currency_code":
+      return value ? formatCurrencyLabel(String(value)) : ""
+    case "country_code":
+      return value ? formatCountryLabel(String(value)) : ""
+    case "timezone":
+      return value ? formatTimezoneLabel(String(value)) : ""
     case "json":
       return (
         <pre className="truncate">
@@ -49,9 +61,14 @@ export const AllCells = memo(function ({
         </pre>
       )
     case "date":
-      return value ? new Date(value as string).toLocaleDateString() : ""
+      return value ? formatDate(value as string) : ""
     case "datetime":
-      return value ? new Date(value as string).toLocaleString() : ""
+      return value
+        ? formatDate(value as string, {
+            dateStyle: "medium",
+            timeStyle: "short",
+          })
+        : ""
     case "time":
       return value?.toString()
     default:

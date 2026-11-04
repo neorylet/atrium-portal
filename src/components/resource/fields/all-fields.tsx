@@ -1,6 +1,8 @@
 import type { FieldProps } from "#/types/fields"
 
 import { BooleanField } from "./boolean-field"
+import { CountryComboboxField } from "./country-combobox-field"
+import { CurrencyComboboxField } from "./currency-combobox-field"
 import { DateField } from "./date-field"
 import { DatetimeField } from "./datetime-field"
 import { DurationField } from "./duration-field"
@@ -14,9 +16,31 @@ import { RichTextField } from "./rich-text-field"
 import { SelectField } from "./select-field"
 import { TextField } from "./text-field"
 import { TimeField } from "./time-field"
+import { TimezoneComboboxField } from "./timezone-combobox-field"
 import { UuidField } from "./uuid-field"
 
-export function AllFields({ columnMetadata }: FieldProps) {
+export function AllFields({ columnMetadata, form }: FieldProps) {
+  if (
+    columnMetadata.variant === "currency_code" ||
+    columnMetadata.name === "currency_code"
+  ) {
+    return <CurrencyComboboxField columnMetadata={columnMetadata} form={form} />
+  }
+
+  if (
+    columnMetadata.variant === "country_code" ||
+    columnMetadata.name === "country_code"
+  ) {
+    return <CountryComboboxField columnMetadata={columnMetadata} form={form} />
+  }
+
+  if (
+    columnMetadata.variant === "timezone" ||
+    columnMetadata.name === "timezone"
+  ) {
+    return <TimezoneComboboxField columnMetadata={columnMetadata} form={form} />
+  }
+
   switch (columnMetadata.variant) {
     case "uuid":
       return <UuidField columnMetadata={columnMetadata} />

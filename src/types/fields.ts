@@ -1,5 +1,6 @@
 import type { ReactElement } from "react"
 
+import type { ResourceFormApi } from "#/components/resource/form-hook"
 import type { FilterVariant } from "#/lib/data-table-types"
 import type { AggregateFunction, ColumnSchema } from "#/lib/database-meta.types"
 
@@ -30,9 +31,13 @@ export type ColumnFieldMetadata = {
     | "barcode"
     | "duration"
     | "array"
+    | "currency_code"
+    | "country_code"
+    | "timezone"
   filterVariant: FilterVariant
   icon: ReactElement | null
   description?: string
+  placeholder?: string
   defaultValue: string | null
   required: boolean
   disabled: boolean
@@ -54,6 +59,7 @@ export type ColumnFieldMetadata = {
 export type FieldProps = {
   columnMetadata: ColumnFieldMetadata
   disabled?: boolean
+  form?: ResourceFormApi
 }
 
 export type FileObject = {

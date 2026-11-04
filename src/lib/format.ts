@@ -9,12 +9,12 @@ export function formatDate(
       opts.dateStyle || opts.timeStyle
         ? opts
         : {
-            month: opts.month ?? "long",
             day: opts.day ?? "numeric",
+            month: opts.month ?? "short",
             year: opts.year ?? "numeric",
             ...opts,
           }
-    return new Intl.DateTimeFormat("en-US", options).format(new Date(date))
+    return new Intl.DateTimeFormat("en-GB", options).format(new Date(date))
   } catch (err) {
     console.error(err)
     return ""

@@ -1,4 +1,6 @@
-import { useMemo } from "react"
+import { useEffect, useMemo, useRef } from "react"
+import { useStore } from "@tanstack/react-form"
+import { getPrimaryTimezoneForCountry } from "#/lib/geo-data"
 
 import { useNavigate } from "@tanstack/react-router"
 
@@ -19,6 +21,37 @@ import {
   getColumnFieldSpan,
   getProgressFields,
 } from "./resource-form-utils"
+
+
+function SmartTimezoneInferenceSync({ form }: { form: ResourceFormApi }) {
+  const countryCode = useStore(
+    form.baseStore,
+    (s) => (s?.values as Record<string, unknown> | undefined)?.country_code
+  )
+  const isInitialMount = useRef(true)
+  const prevCountryRef = useRef(countryCode)
+
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      prevCountryRef.current = countryCode
+      return
+    }
+
+    if (countryCode && countryCode !== prevCountryRef.current) {
+      prevCountryRef.current = countryCode
+      const inferredTz = getPrimaryTimezoneForCountry(String(countryCode))
+      if (inferredTz) {
+        const values = form.state.values as Record<string, unknown> | undefined
+        if (values && "timezone" in values) {
+          form.setFieldValue("timezone", inferredTz)
+        }
+      }
+    }
+  }, [countryCode, form])
+
+  return null
+}
 
 type ResourceFormLayoutProps = {
   tableSchema: TableSchema
@@ -118,6 +151,7 @@ export function ResourceFormLayout({
   if (!plan) {
     return (
       <div className="mx-auto w-full max-w-5xl space-y-4">
+        <SmartTimezoneInferenceSync form={form} />
         {progressFields.map(({ col, meta }) => (
           <ProgressFieldPreview
             key={col.id}
@@ -153,6 +187,7 @@ export function ResourceFormLayout({
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-4">
+      <SmartTimezoneInferenceSync form={form} />
       {progressFields.map(({ col, meta }) => (
         <ProgressFieldPreview
           key={col.id}

@@ -418,6 +418,7 @@ export type AggregateFunction =
 export type ColumnMetadata = {
   name?: string
   description?: string
+  placeholder?: string
   icon?: IconName
   aggregate?: AggregateFunction
 }

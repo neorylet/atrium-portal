@@ -10,6 +10,14 @@ create table public.organisations (
   name text not null check (char_length(name) between 2 and 120),
   slug text not null unique check (slug ~ '^[a-z0-9-]+$'),
   billing_email text check (billing_email like '%@%'),
+  timezone text not null default 'UTC',
+  currency_code char(3) not null default 'USD',
+  address_line_1 text,
+  address_line_2 text,
+  city text,
+  state_province text,
+  postal_code text,
+  country_code char(2),
   created_by uuid default auth.uid() references auth.users(id) on delete set null,
   updated_by uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now(),
@@ -56,7 +64,7 @@ create table public.invoices (
   invoice_number text not null unique,
   status public.invoice_status not null default 'draft',
   amount numeric(12,2) not null check (amount >= 0),
-  currency char(3) not null default 'USD' check (currency ~ '^[A-Z]{3}$'),
+  currency char(3) not null check (currency ~ '^[A-Z]{3}$'),
   issued_on date not null default current_date,
   due_on date,
   paid_on date,
@@ -101,8 +109,10 @@ as $$
 begin
   new.updated_at = now();
   new.updated_by = auth.uid();
-  if tg_table_name = 'deliverables' and new.status = 'approved' and old.status != 'approved' then
-    new.approved_at = now();
+  if tg_table_name = 'deliverables' then
+    if new.status = 'approved' and old.status != 'approved' then
+      new.approved_at = now();
+    end if;
   end if;
   return new;
 end;
@@ -121,7 +131,10 @@ comment on table public.organisations is '{
   "icon": "Building2",
   "fields": {
     "sections": [
-      {"id": "overview", "title": "Overview", "fields": ["name", "slug", "billing_email"]}
+      {"id": "general", "title": "Company Profile", "fields": ["name", "slug", "status", "logo_url", "website", "phone_number"]},
+      {"id": "billing", "title": "Billing & Financials", "fields": ["billing_email", "currency_code", "tax_id"]},
+      {"id": "address", "title": "Registered Address", "fields": ["address_line_1", "address_line_2", "city", "state_province", "postal_code", "country_code"]},
+      {"id": "settings", "title": "System Settings", "fields": ["timezone"]}
     ],
     "metadata": ["id", "created_at", "updated_at", "created_by", "updated_by"]
   },
@@ -133,6 +146,14 @@ comment on table public.organisations is '{
 comment on column public.organisations.name is '{"name": "Organization Name"}';
 comment on column public.organisations.slug is '{"name": "Slug"}';
 comment on column public.organisations.billing_email is '{"name": "Billing Email"}';
+comment on column public.organisations.timezone is '{"name": "Timezone", "description": "Used to calculate exact due dates for invoices and projects.", "placeholder": "Asia/Manila"}';
+comment on column public.organisations.currency_code is '{"name": "Currency Code", "description": "ISO 4217 three-letter currency code.", "placeholder": "USD"}';
+comment on column public.organisations.address_line_1 is '{"name": "Address Line 1", "placeholder": "123 Wall Street"}';
+comment on column public.organisations.address_line_2 is '{"name": "Address Line 2", "placeholder": "Suite 400"}';
+comment on column public.organisations.city is '{"name": "City", "placeholder": "New York"}';
+comment on column public.organisations.state_province is '{"name": "State / Province", "placeholder": "NY"}';
+comment on column public.organisations.postal_code is '{"name": "Postal Code", "placeholder": "10005"}';
+comment on column public.organisations.country_code is '{"name": "Country Code", "description": "ISO 3166-1 alpha-2 country code.", "placeholder": "US"}';
 
 -- Projects
 comment on table public.projects is '{

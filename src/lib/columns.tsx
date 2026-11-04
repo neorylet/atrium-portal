@@ -4,6 +4,8 @@ import {
   BaselineIcon,
   BinaryIcon,
   CalendarClockIcon,
+  CoinsIcon,
+  GlobeIcon,
   CalendarDaysIcon,
   ChevronDownIcon,
   ClockIcon,
@@ -205,6 +207,7 @@ export function getColumnMetadata(
   const baseOptions = {
     name,
     description: commentMeta.description,
+    placeholder: commentMeta.placeholder,
     aggregate: commentMeta.aggregate,
     defaultValue,
     disabled,
@@ -243,6 +246,39 @@ export function getColumnMetadata(
       filterVariant: "text",
       icon: baseOptions.icon ?? (
         <UserIcon className="size-4 shrink-0 text-muted-foreground" />
+      ),
+    }
+  }
+
+  if (columnSchema.name === "currency_code" || dataType === "currency_code") {
+    return {
+      ...baseOptions,
+      variant: "currency_code",
+      filterVariant: "text",
+      icon: baseOptions.icon ?? (
+        <CoinsIcon className="size-4 shrink-0 text-muted-foreground" />
+      ),
+    }
+  }
+
+  if (columnSchema.name === "country_code" || dataType === "country_code") {
+    return {
+      ...baseOptions,
+      variant: "country_code",
+      filterVariant: "text",
+      icon: baseOptions.icon ?? (
+        <GlobeIcon className="size-4 shrink-0 text-muted-foreground" />
+      ),
+    }
+  }
+
+  if (columnSchema.name === "timezone" || dataType === "timezone") {
+    return {
+      ...baseOptions,
+      variant: "timezone",
+      filterVariant: "text",
+      icon: baseOptions.icon ?? (
+        <ClockIcon className="size-4 shrink-0 text-muted-foreground" />
       ),
     }
   }

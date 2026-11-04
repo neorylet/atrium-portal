@@ -7,6 +7,18 @@ insert into public.organisations (id, name, slug, billing_email) values
   ('a0000000-0000-4000-8000-000000000002', 'Beta Industries', 'beta-industries', 'billing@beta.example')
 on conflict (id) do nothing;
 
+-- US-based client
+update public.organisations set
+  address_line_1 = '123 Wall Street', city = 'New York', state_province = 'NY',
+  postal_code = '10005', country_code = 'US', timezone = 'America/New_York', currency_code = 'USD'
+where slug = 'acme-corp';
+
+-- PH-based client
+update public.organisations set
+  address_line_1 = 'Ayala Avenue', city = 'Makati', state_province = 'Metro Manila',
+  postal_code = '1226', country_code = 'PH', timezone = 'Asia/Manila', currency_code = 'PHP'
+where slug = 'beta-industries';
+
 -- Insert Users into auth.users
 -- CRITICAL: We added "role":"client" to Priya and Omar's raw_app_meta_data so the JWT hook works.
 insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, confirmation_token, recovery_token, email_change, email_change_token_new)
@@ -44,10 +56,10 @@ insert into public.deliverables (id, org_id, project_id, title, description, sta
 on conflict (id) do nothing;
 
 -- Insert Invoices
-insert into public.invoices (id, org_id, project_id, invoice_number, status, amount, issued_on, due_on, paid_on) values
-  ('e0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'ATR-2026-0001', 'paid', 4800.00, current_date - interval '45 days', current_date - interval '30 days', current_date - interval '30 days'),
-  ('e0000000-0000-4000-8000-000000000002', 'a0000000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000004', 'ATR-2026-0002', 'overdue', 7777.00, current_date - interval '20 days', current_date - interval '5 days', null),
-  ('e0000000-0000-4000-8000-000000000003', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000002', 'ATR-2026-0003', 'sent', 12500.00, current_date - interval '10 days', current_date + interval '20 days', null)
+insert into public.invoices (id, org_id, project_id, invoice_number, status, amount, currency, issued_on, due_on, paid_on) values
+  ('e0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'ATR-2026-0001', 'paid', 4800.00, 'USD', current_date - interval '45 days', current_date - interval '30 days', current_date - interval '30 days'),
+  ('e0000000-0000-4000-8000-000000000002', 'a0000000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000004', 'ATR-2026-0002', 'overdue', 7777.00, 'PHP', current_date - interval '20 days', current_date - interval '5 days', null),
+  ('e0000000-0000-4000-8000-000000000003', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000002', 'ATR-2026-0003', 'sent', 12500.00, 'USD', current_date - interval '10 days', current_date + interval '20 days', null)
 on conflict (id) do nothing;
 
 -- Supasheet internal user profiles (MUST match the auth.users IDs)

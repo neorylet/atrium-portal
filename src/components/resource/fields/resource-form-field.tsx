@@ -114,7 +114,7 @@ export function ResourceFormField<S extends DatabaseSchemas>({
                 form={form}
               />
             ) : (
-              <AllFields columnMetadata={columnMetadata} />
+              <AllFields columnMetadata={columnMetadata} form={form} />
             )}
           </div>
           {columnMetadata.description && (

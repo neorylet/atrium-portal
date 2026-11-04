@@ -8,11 +8,12 @@ import { FieldOptionDropdown } from "./field-option-dropdown"
 export function MoneyField({ columnMetadata }: FieldProps) {
   const field = useFieldContext<unknown>()
   const placeholder =
-    field.state.value === "" && columnMetadata.defaultValue
+    columnMetadata.placeholder ??
+    (field.state.value === "" && columnMetadata.defaultValue
       ? "DEFAULT VALUE"
       : field.state.value === null
         ? "NULL"
-        : "EMPTY"
+        : "EMPTY")
 
   const raw = (field.state.value as string) ?? "0"
   const value = parseFloat(
