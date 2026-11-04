@@ -55,7 +55,9 @@ export function ResourceGrid({
             columnsSchema.find((col) => (col.name ?? col.id) === name)
           )
           .filter((col) => col !== undefined)
-      : columnsSchema
+      : columnsSchema.filter(
+          (col) => !["id", "created_by", "updated_by"].includes(col.name ?? col.id)
+        )
     return getResourceGridColumns({
       columnsSchema: visibleColumnsSchema,
       tableSchema,

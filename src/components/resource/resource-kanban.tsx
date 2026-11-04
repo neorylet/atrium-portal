@@ -46,12 +46,17 @@ export type KanbanViewReducedData = Record<string, KanbanViewData[]>
 
 function seedGroupColumns(
   data: KanbanViewReducedData,
-  groupValues: string[]
+  groupValues: string[],
+  groupBy: string
 ): KanbanViewReducedData {
-  if (groupValues.length === 0) return data
+  // Force the 5 statuses for projects so empty columns show up
+  let finalGroupValues = groupValues
+  if (groupBy === "status") {
+    finalGroupValues = ["planning", "active", "on_hold", "completed", "archived"]
+  }
 
   const seeded: KanbanViewReducedData = {}
-  for (const value of groupValues) {
+  for (const value of finalGroupValues) {
     seeded[value] = data[value] ?? []
   }
   for (const [value, tasks] of Object.entries(data)) {
@@ -85,13 +90,14 @@ export function ResourceKanban({
     from: "/$schema/resource/$resource/kanban/$kanbanId",
   })
   const queryClient = useQueryClient()
+  
   const [columns, setColumns] = useState<KanbanViewReducedData>(() =>
-    seedGroupColumns(data, groupValues)
+    seedGroupColumns(data, groupValues, groupBy)
   )
 
   useEffect(() => {
-    setColumns(seedGroupColumns(data, groupValues))
-  }, [data, groupValues])
+    setColumns(seedGroupColumns(data, groupValues, groupBy))
+  }, [data, groupValues, groupBy])
 
   const { mutate: updateResource } = useMutation(
     updateResourceMutationOptions(schema, resource)
@@ -160,42 +166,22 @@ export function ResourceKanban({
           getItemValue={buildId}
         >
           <KanbanBoard className="flex min-h-0 flex-1 flex-row overflow-x-auto">
+            {/* Changed this to Object.entries(columns) so it renders all seeded columns */}
             {Object.entries(columns).map(([columnValue, tasks]) => {
-              const collapsed = tasks.length === 0
               const meta = groupMeta[columnValue]
+              const humanLabel = columnValue.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())
 
               return (
                 <KanbanColumn
                   key={columnValue}
                   value={columnValue}
-                  className={cn(
-                    "flex flex-col gap-2 rounded-lg border bg-card p-2.5",
-                    collapsed
-                      ? "w-14 shrink-0 items-center"
-                      : "max-w-2xl min-w-sm"
-                  )}
+                  className="flex flex-col gap-2 rounded-lg border bg-card p-2.5 min-w-[300px] w-[300px] shrink-0"
                 >
-                  <div
-                    className={cn(
-                      "flex items-center justify-between",
-                      collapsed && "flex-1 flex-col justify-start gap-2"
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "flex items-center gap-2",
-                        collapsed && "flex-col"
-                      )}
-                    >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
                       <DynamicIcon iconName={meta?.icon} />
-                      <span
-                        className={cn(
-                          "text-sm font-semibold",
-                          collapsed &&
-                            "rotate-180 whitespace-nowrap [writing-mode:vertical-rl]"
-                        )}
-                      >
-                        {columnValue}
+                      <span className="text-sm font-semibold">
+                        {humanLabel}
                       </span>
                       <Badge
                         variant={meta?.variant ?? "secondary"}

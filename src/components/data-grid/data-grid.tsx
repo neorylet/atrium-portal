@@ -44,6 +44,19 @@ export function DataGrid<TData extends RowData>({
     setLocalRows(gridRows)
   }
 
+  // Helper to check if a string is a UUID
+  const isUUID = (str: string) =>
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str)
+
+  // Helper to get joined table name from column name (e.g., project_id -> projects)
+  const getJoinedTableName = (colName: string) => {
+    if (colName === "org_id") return "organisations"
+    if (colName.endsWith("_id")) {
+      return colName.slice(0, -3) + "s" // project_id -> projects
+    }
+    return colName
+  }
+
   const gridColumns: Column<GridRow>[] = table
     .getHeaderGroups()
     .flatMap((headerGroup) =>
@@ -57,6 +70,24 @@ export function DataGrid<TData extends RowData>({
               ? null
               : flexRender(header.column.columnDef.header, header.getContext()),
           renderEditCell: isEditable ? getEditCell(meta) : undefined,
+          renderCell: ({ row }: { row: GridRow }) => {
+            const value = row[header.id]
+            const stringValue = value?.toString()
+
+            // If value is UUID and there's a nested joined object, render the name
+            if (isUUID(stringValue || "")) {
+              const joinedTableName = getJoinedTableName(header.id)
+              const joinedObj = row[joinedTableName] as
+                | Record<string, unknown>
+                | null
+                | undefined
+              if (joinedObj && typeof joinedObj.name === "string") {
+                return joinedObj.name
+              }
+            }
+
+            return stringValue ?? ""
+          },
         }
       })
     )
