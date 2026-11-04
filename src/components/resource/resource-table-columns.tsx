@@ -103,7 +103,9 @@ export function getResourceTableColumns({
           columnsSchema.find((col) => (col.name ?? col.id) === name)
         )
         .filter((col) => col !== undefined)
-    : columnsSchema
+    : columnsSchema.filter(
+        (col) => !["id", "created_by", "updated_by"].includes(col.name ?? col.id)
+      )
 
   for (const col of visibleColumns) {
     const name = col.name ?? col.id

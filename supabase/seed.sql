@@ -27,24 +27,27 @@ values
 on conflict (id) do nothing;
 
 -- Insert Projects
-insert into public.projects (id, org_id, name, status) values
-  ('b0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000001', 'Brand refresh', 'active'),
-  ('b0000000-0000-4000-8000-000000000002', 'a0000000-0000-4000-8000-000000000001', 'Web redesign', 'active'),
-  ('b0000000-0000-4000-8000-000000000003', 'a0000000-0000-4000-8000-000000000001', 'Logo suite', 'completed'),
-  ('b0000000-0000-4000-8000-000000000004', 'a0000000-0000-4000-8000-000000000002', 'Packaging system', 'active'),
-  ('b0000000-0000-4000-8000-000000000005', 'a0000000-0000-4000-8000-000000000002', 'Trade-show booth', 'on_hold')
+insert into public.projects (id, org_id, name, description, status, start_date, due_date) values
+  ('b0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000001', 'Brand refresh', 'Complete visual identity overhaul including logo, color palette, and typography guidelines.', 'active', current_date - interval '30 days', current_date + interval '14 days'),
+  ('b0000000-0000-4000-8000-000000000002', 'a0000000-0000-4000-8000-000000000001', 'Web redesign', 'Full website redesign with modern UI/UX and responsive mobile experience.', 'active', current_date - interval '15 days', current_date + interval '30 days'),
+  ('b0000000-0000-4000-8000-000000000003', 'a0000000-0000-4000-8000-000000000001', 'Logo suite', 'Comprehensive logo variations for print, web, and social media applications.', 'completed', current_date - interval '60 days', current_date - interval '30 days'),
+  ('b0000000-0000-4000-8000-000000000004', 'a0000000-0000-4000-8000-000000000002', 'Packaging system', 'Unified packaging design system across all product lines.', 'active', current_date - interval '20 days', current_date + interval '10 days'),
+  ('b0000000-0000-4000-8000-000000000005', 'a0000000-0000-4000-8000-000000000002', 'Trade-show booth', 'Large format booth design and collateral for upcoming industry conference.', 'on_hold', current_date - interval '45 days', current_date + interval '45 days')
 on conflict (id) do nothing;
 
 -- Insert Deliverables
-insert into public.deliverables (id, org_id, project_id, title, status) values
-  ('d0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'Brand guidelines v2', 'in_review'),
-  ('d0000000-0000-4000-8000-000000000002', 'a0000000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000004', 'CONFIDENTIAL - Beta pricing deck', 'in_review')
+insert into public.deliverables (id, org_id, project_id, title, description, status, due_date) values
+  ('d0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'Brand guidelines v2', 'Comprehensive brand style guide with logo usage, color codes, and typography specifications.', 'in_review', current_date + interval '3 days'),
+  ('d0000000-0000-4000-8000-000000000002', 'a0000000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000004', 'CONFIDENTIAL - Beta pricing deck', 'Internal pricing strategy presentation for executive review.', 'in_review', current_date - interval '2 days'),
+  ('d0000000-0000-4000-8000-000000000003', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000002', 'Homepage mockups', 'High-fidelity homepage designs with mobile responsive variations.', 'approved', current_date - interval '10 days'),
+  ('d0000000-0000-4000-8000-000000000004', 'a0000000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000004', 'Package mockups', '3D renderings of new packaging across product variants.', 'draft', current_date + interval '7 days')
 on conflict (id) do nothing;
 
 -- Insert Invoices
-insert into public.invoices (id, org_id, project_id, invoice_number, status, amount_cents) values
-  ('e0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'ATR-2026-0001', 'paid', 480000),
-  ('e0000000-0000-4000-8000-000000000002', 'a0000000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000004', 'ATR-2026-0002', 'overdue', 777700)
+insert into public.invoices (id, org_id, project_id, invoice_number, status, amount, issued_on, due_on, paid_on) values
+  ('e0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'ATR-2026-0001', 'paid', 4800.00, current_date - interval '45 days', current_date - interval '30 days', current_date - interval '30 days'),
+  ('e0000000-0000-4000-8000-000000000002', 'a0000000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000004', 'ATR-2026-0002', 'overdue', 7777.00, current_date - interval '20 days', current_date - interval '5 days', null),
+  ('e0000000-0000-4000-8000-000000000003', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000002', 'ATR-2026-0003', 'sent', 12500.00, current_date - interval '10 days', current_date + interval '20 days', null)
 on conflict (id) do nothing;
 
 -- Supasheet internal user profiles (MUST match the auth.users IDs)
@@ -71,3 +74,6 @@ VALUES
   ('app.name', '"Atrium Portal"', 'Application display name', true),
   ('app.description', '"A clear pane between agency and client."', 'Shown on the sign-in page', true)
 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
+
+-- Force PostgREST to reload schema cache to recognize foreign key relationships
+NOTIFY pgrst, 'reload schema';

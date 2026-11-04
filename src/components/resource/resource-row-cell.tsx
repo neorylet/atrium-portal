@@ -54,6 +54,18 @@ export const ResourceRowCell = memo(function ({
 
   const value = row.original?.[columnSchema.name]
 
+  // Helper to check if a string is a UUID
+  const isUUID = (str: string) =>
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str)
+
+  // Helper to get joined table name from column name (e.g., project_id -> projects)
+  const getJoinedTableName = (colName: string) => {
+    if (colName.endsWith("_id")) {
+      return colName.slice(0, -3) + "s" // project_id -> projects
+    }
+    return colName
+  }
+
   if (joinConfig) {
     const embedKey = joinConfig.alias ?? joinConfig.table
     const joinedObj = row.original?.[embedKey] as
@@ -82,6 +94,38 @@ export const ResourceRowCell = memo(function ({
         <span>{joinedValue?.toString() ?? ""}</span>
       </div>
     )
+  }
+
+  // Fallback: if value is UUID and there's a nested joined object, render the name
+  const stringValue = value?.toString()
+  if (isUUID(stringValue || "")) {
+    const joinedTableName = getJoinedTableName(columnSchema.name)
+    const joinedObj = row.original?.[joinedTableName] as
+      | Record<string, unknown>
+      | null
+      | undefined
+    if (joinedObj && typeof joinedObj.name === "string") {
+      return (
+        <div
+          className={cn("relative truncate select-none", relationship && "pl-6")}
+        >
+          {relationship && (
+            <DetailRecordTrigger
+              pk={{ [relationship.target_column_name]: value }}
+              primaryKeyNames={[relationship.target_column_name]}
+              schema={relationship.target_table_schema}
+              resource={relationship.target_table_name}
+              size="icon-xs"
+              variant="outline"
+              className="absolute top-1/2 left-0 size-5 -translate-y-1/2 [&_svg]:size-3"
+            >
+              <ArrowUpRightIcon />
+            </DetailRecordTrigger>
+          )}
+          <span>{joinedObj.name}</span>
+        </div>
+      )
+    }
   }
 
   return (
