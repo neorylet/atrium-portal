@@ -133,7 +133,7 @@ export function ForeignDataCombobox({
       }}
       items={records}
       itemToStringLabel={(record) =>
-        String(record[relationship.target_column_name] ?? "")
+        String(record[displayColumn] ?? "")
       }
       isItemEqualToValue={(item, val) =>
         item[relationship.target_column_name] ===
