@@ -1,4 +1,5 @@
 import { useSuspenseQuery } from "@tanstack/react-query"
+import { InviteMemberForm } from "#/components/organisation/InviteMemberForm"
 import {
   Link,
   Outlet,
@@ -245,6 +246,8 @@ function RouteComponent() {
     return seg
   })()
 
+  const isOrg = resource === "organisations"
+
   const allTabs: { id: string; label: string; path: string }[] = [
     { id: MAIN_TAB, label: "Detail", path: basePath },
     ...embeddedTables.map((r) => ({
@@ -252,10 +255,16 @@ function RouteComponent() {
       label: formatTitle(r.__embedKey),
       path: `${basePath}/${r.__embedKey}`,
     })),
+    ...(isOrg ? [{ id: "invite", label: "Invite", path: `${basePath}/invite` }] : []),
   ]
 
   const tabs = allowedTabs
-    ? allTabs.filter((t) => t.id === MAIN_TAB || allowedTabs.includes(t.id))
+    ? allTabs.filter(
+        (t) =>
+          t.id === MAIN_TAB ||
+          t.id === "invite" ||
+          allowedTabs.includes(t.id)
+      )
     : allTabs
 
   return (
@@ -305,7 +314,21 @@ function RouteComponent() {
               </div>
             </Tabs>
           ) : null}
-          <Outlet />
+          
+          {/* RENDER THE INVITE FORM DIRECTLY INSTEAD OF <Outlet /> */}
+          {currentTab === "invite" ? (
+            <div className="flex flex-col gap-6 max-w-2xl pt-4">
+              <div>
+                <h2 className="text-xl font-semibold tracking-tight">Invite Member</h2>
+                <p className="text-sm text-muted-foreground">
+                  Send an invitation email to a new member of this organisation.
+                </p>
+              </div>
+              <InviteMemberForm orgId={resourceId} />
+            </div>
+          ) : (
+            <Outlet />
+          )}
         </div>
       </div>
     </>

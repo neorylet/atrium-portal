@@ -71,23 +71,29 @@ function BreadcrumbPage({ className, ...props }: React.ComponentProps<"span">) {
   )
 }
 
+/**
+ * BreadcrumbSeparator
+ *
+ * Changed from <li> to <span> to prevent the
+ * "In HTML, <li> cannot be a descendant of <li>" hydration error.
+ * The separator is a purely visual element (role="presentation") so
+ * the element type doesn't affect semantics or accessibility.
+ */
 function BreadcrumbSeparator({
   children,
   className,
   ...props
-}: React.ComponentProps<"li">) {
+}: React.ComponentProps<"span">) {
   return (
-    <li
+    <span
       data-slot="breadcrumb-separator"
       role="presentation"
       aria-hidden="true"
       className={cn("[&>svg]:size-3.5", className)}
       {...props}
     >
-      {children ?? (
-        <ChevronRightIcon />
-      )}
-    </li>
+      {children ?? <ChevronRightIcon />}
+    </span>
   )
 }
 
@@ -106,8 +112,7 @@ function BreadcrumbEllipsis({
       )}
       {...props}
     >
-      <MoreHorizontalIcon
-      />
+      <MoreHorizontalIcon />
       <span className="sr-only">More</span>
     </span>
   )

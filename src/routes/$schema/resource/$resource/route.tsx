@@ -27,18 +27,23 @@ export const Route = createFileRoute("/$schema/resource/$resource")({
       }),
       context.queryClient.query({
         ...tableSchemaQueryOptions(schema, resource),
-        staleTime: "static",
+        // Use a short stale time (30 s) so schema changes — new columns,
+        // updated COMMENT metadata — are reflected after a normal refresh
+        // instead of requiring a full cache clear.
+        staleTime: 1000 * 30,
       }),
       context.queryClient.query({
         ...columnsSchemaQueryOptions(schema, resource),
-        staleTime: "static",
+        // Same: 30 s so post-migration column additions are visible
+        // without a full cache wipe.
+        staleTime: 1000 * 30,
       }),
     ])
 
     const viewSchema = !tableSchema
       ? await context.queryClient.query({
           ...viewSchemaQueryOptions(schema, resource),
-          staleTime: "static",
+          staleTime: 1000 * 30,
         })
       : null
 

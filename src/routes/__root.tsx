@@ -10,6 +10,8 @@ import {
 import type { ErrorComponentProps } from "@tanstack/react-router"
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools"
 
+import { useEffect } from "react"
+
 import { NuqsAdapter } from "nuqs/adapters/tanstack-router"
 
 import { ThemeProvider } from "#/components/theme-provider"
@@ -110,6 +112,49 @@ function LoadingScreen() {
 }
 
 function RootComponent() {
+  const router = useRouter()
+
+  /**
+   * Intercept Supabase invite / password-recovery links.
+   *
+   * When a user clicks the invite email, Supabase appends a URL hash like:
+   *   #access_token=...&refresh_token=...&type=invite
+   *
+   * The Supabase JS client auto-signs them in, but the app would then navigate
+   * to "/" without ever letting them set a password. This effect detects the
+   * hash on first mount and redirects to the update-password page instead.
+   *
+   * We also listen for the PASSWORD_RECOVERY auth event (triggered by
+   * "Forgot password" links) so both flows land on the same form.
+   */
+  useEffect(() => {
+    // 1. Check the URL hash on initial mount (covers invite & recovery links).
+    const hash = window.location.hash
+    if (hash) {
+      const params = new URLSearchParams(hash.replace(/^#/, ""))
+      const type = params.get("type")
+      if (type === "invite" || type === "recovery") {
+        // Strip the hash so it doesn't re-trigger on next render.
+        history.replaceState(null, "", window.location.pathname + window.location.search)
+        void router.navigate({ to: "/auth/update-password", replace: true })
+        return
+      }
+    }
+
+    // 2. Import supabase dynamically to avoid a circular-module issue in root.
+    import("#/lib/supabase/client").then(({ supabase }) => {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        (event) => {
+          if (event === "PASSWORD_RECOVERY") {
+            void router.navigate({ to: "/auth/update-password", replace: true })
+          }
+        }
+      )
+      return () => subscription.unsubscribe()
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   return (
     <>
       <HeadContent />

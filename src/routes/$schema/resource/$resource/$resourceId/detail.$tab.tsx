@@ -26,6 +26,10 @@ export const Route = createFileRoute(
 )({
   loader: async ({ context, params }) => {
     const { schema, resource, resourceId, tab } = params
+    
+    // If it's the invite tab, exit early so the loader doesn't crash
+    if (tab === "invite") return null as any
+
     const relatedTablesSchema = await context.queryClient.query({
       ...relatedTablesSchemaQueryOptions(schema, resource),
       staleTime: "static",
@@ -108,19 +112,18 @@ export const Route = createFileRoute(
 })
 
 function RouteComponent() {
-  const { schema, resource, resourceId } = Route.useParams()
-  const { oneToOne, oneToMany, manyToMany, isTimeline } = Route.useLoaderData()
+  const { schema, resource, resourceId, tab } = Route.useParams()
+  
+  // 1. CALL ALL HOOKS AT THE VERY TOP
+  const loaderData = Route.useLoaderData()
   const { pkName } = parentRoute.useLoaderData()
-
   const pk = { [pkName]: resourceId }
-
-  const many = oneToMany ?? manyToMany
 
   const { data: record } = useSuspenseQuery(
     singleResourceDataQueryOptions(schema, resource, pk)
   )
-
   const { authUser, privileges } = Route.useRouteContext()
+  const { oneToOne, oneToMany, manyToMany, isTimeline } = loaderData || {}
 
   const hasParentUpdatePermission = useHasPermission({
     schema,
@@ -148,6 +151,13 @@ function RouteComponent() {
   const canUpdateOneToOne = authUser
     ? hasOneToOneUpdatePermission && oneToOneUpdatePrivilege
     : oneToOneUpdatePrivilege
+
+  // 2. NOW IT IS SAFE TO RETURN EARLY
+  if (tab === "invite" || !loaderData) {
+    return null // The router will render invite.tsx instead
+  }
+
+  const many = oneToMany ?? manyToMany
 
   return (
     <ResourceDetailTab
