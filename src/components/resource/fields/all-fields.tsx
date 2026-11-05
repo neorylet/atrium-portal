@@ -6,6 +6,7 @@ import { CurrencyComboboxField } from "./currency-combobox-field"
 import { DateField } from "./date-field"
 import { DatetimeField } from "./datetime-field"
 import { DurationField } from "./duration-field"
+import { FileUploadField } from "./file-upload-field"
 import { JsonField } from "./json-field"
 import { LongtextField } from "./long-text-field"
 import { MoneyField } from "./money-field"
@@ -20,6 +21,12 @@ import { TimezoneComboboxField } from "./timezone-combobox-field"
 import { UuidField } from "./uuid-field"
 
 export function AllFields({ columnMetadata, form }: FieldProps) {
+  // FORCE FILE UPLOADER FOR SPECIFIC COLUMNS
+  // This bypasses any database type confusion (like jsonb vs text)
+  if (columnMetadata.name === "file_path" || columnMetadata.name === "logo_url") {
+    return <FileUploadField columnMetadata={columnMetadata} form={form} />
+  }
+
   if (
     columnMetadata.variant === "currency_code" ||
     columnMetadata.name === "currency_code"
@@ -70,6 +77,8 @@ export function AllFields({ columnMetadata, form }: FieldProps) {
       return <DurationField columnMetadata={columnMetadata} />
     case "rich_text":
       return <RichTextField columnMetadata={columnMetadata} />
+    case "file":
+      return <FileUploadField columnMetadata={columnMetadata} form={form} />
     case "color":
     case "barcode":
     case "email":

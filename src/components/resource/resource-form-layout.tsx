@@ -80,13 +80,24 @@ export function ResourceFormLayout({
     () => JSON.parse(tableSchema?.comment ?? "{}") as TableMetadata,
     [tableSchema?.comment]
   )
+  
   const { plan, colByName, progressFields } = useMemo(() => {
+    // 1. Get the columns that will be rendered as progress steppers (e.g., status)
+    const progressData = getProgressFields(writableCols)
+    const progressNames = progressData.map((p) => p.col.name)
+
+    // 2. Filter out those columns from the form sections so we don't render them twice
+    const filteredSections = tableMeta.fields?.sections?.map((section) => ({
+      ...section,
+      fields: section.fields?.filter((f) => !progressNames.includes(f)),
+    }))
+
     const writableNames = new Set(writableCols.map((c) => c.name ?? c.id ?? ""))
 
     return {
-      plan: buildLayoutPlan(tableMeta.fields?.sections, writableNames, mode),
+      plan: buildLayoutPlan(filteredSections, writableNames, mode),
       colByName: new Map(writableCols.map((c) => [c.name ?? c.id ?? "", c])),
-      progressFields: getProgressFields(writableCols),
+      progressFields: progressData,
     }
   }, [tableMeta.fields?.sections, writableCols, mode])
 

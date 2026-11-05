@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 
-import { EyeIcon, Image as ImageIcon, Trash } from "lucide-react"
+import { EyeIcon, Image as ImageIcon, Paperclip, Trash } from "lucide-react"
 import { toast } from "sonner"
 
 import { DynamicIcon } from "#/components/resource/resource-definition-utils"
@@ -141,54 +141,59 @@ function GalleryCard<S extends DatabaseSchemas>({
 
   return (
     <>
-      <Card className="h-full">
-        <CardContent className="flex flex-col gap-4">
-          <div className="relative aspect-4/3 w-full overflow-hidden rounded-lg bg-muted">
-            {item.cover ? (
-              <img
-                src={item.cover}
-                alt={item.title ?? "Gallery item"}
-                className="h-full w-full object-cover"
-                loading="lazy"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement
-                  target.style.display = "none"
-                  const sibling = target.nextElementSibling
-                  if (sibling) sibling.classList.remove("hidden")
-                }}
-              />
-            ) : null}
-            <div
-              className={cn(
-                "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
-                item.cover && "hidden"
-              )}
-            >
-              <ImageIcon className="h-12 w-12 text-muted-foreground/40" />
-            </div>
+      <Card className="min-h-[220px]">
+        <CardContent className="flex flex-col h-full justify-between gap-3 p-4">
+          {/* Row 1: Title & Status */}
+          <div className="flex items-start justify-between gap-3">
+            <h3 className="text-lg font-semibold line-clamp-2 flex-1">
+              {item.title}
+            </h3>
+            {item.badge && (
+              <Badge variant={item.badgeVariant ?? "outline"} className="shrink-0">
+                <DynamicIcon iconName={item.badgeIcon} />
+                {item.badge}
+              </Badge>
+            )}
           </div>
 
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between gap-5">
-              <div className="flex items-center gap-1">
-                <span className="line-clamp-1 font-medium text-secondary-foreground">
-                  {item.title}
-                </span>
-              </div>
-              {item.badge && (
-                <Badge variant={item.badgeVariant ?? "outline"}>
-                  <DynamicIcon iconName={item.badgeIcon} />
-                  {item.badge}
-                </Badge>
-              )}
-            </div>
+          {/* Row 2: Project & Org Badges */}
+          <div className="flex gap-2 flex-wrap">
+            {item.data.projects?.name && (
+              <span className="text-xs bg-muted px-2 py-0.5 rounded">
+                {item.data.projects.name}
+              </span>
+            )}
+            {item.data.organisations?.name && (
+              <span className="text-xs bg-muted px-2 py-0.5 rounded">
+                {item.data.organisations.name}
+              </span>
+            )}
+          </div>
 
-            <p className="line-clamp-2 text-sm text-foreground">
+          {/* Row 3: File Indicator */}
+          <div className="flex items-center gap-1.5 text-xs">
+            {item.data.file_path ? (
+              <>
+                <Paperclip className="h-3 w-3 text-muted-foreground" />
+                <span className="text-muted-foreground">File Attached</span>
+              </>
+            ) : (
+              <>
+                <Paperclip className="h-3 w-3 text-muted-foreground/50" />
+                <span className="text-muted-foreground/50">No File</span>
+              </>
+            )}
+          </div>
+
+          {/* Row 4: Description */}
+          {item.description && (
+            <p className="text-sm text-muted-foreground line-clamp-2">
               {item.description}
             </p>
-          </div>
+          )}
 
-          <ButtonGroup className="w-full">
+          {/* Row 5: Actions (Footer) */}
+          <ButtonGroup className="w-full mt-auto">
             <Button variant="secondary" className="flex-1" onClick={goToDetail}>
               <EyeIcon aria-hidden="true" />
               View details

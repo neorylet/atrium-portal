@@ -200,12 +200,28 @@ comment on column public.projects.description is '{"name": "Description"}';
 comment on table public.deliverables is '{
   "display": "Deliverables",
   "icon": "FileText",
+  "primary_view": "gallery",
+  "views": [
+    {
+      "id": "gallery",
+      "type": "gallery",
+      "name": "Deliverable Gallery",
+      "cover": "file_path",
+      "title": "title",
+      "badge": "status"
+    }
+  ],
   "fields": {
     "sections": [
-      {"id": "overview", "title": "Overview", "fields": ["title", "project_id", "status", "due_date"]},
-      {"id": "details", "title": "Details", "fields": ["description", "client_feedback"]}
+      {"id": "details", "title": "Deliverable Details", "fields": ["title", "project_id", "status", "due_date"]},
+      {"id": "file", "title": "Attachment", "fields": ["file_path"]},
+      {"id": "review", "title": "Client Review", "fields": ["client_feedback"]}
     ],
     "metadata": ["id", "org_id", "created_at", "updated_at", "created_by", "updated_by", "approved_at"]
+  },
+  "detail": {
+    "header": {"title": "title", "badges": ["status"]},
+    "tabs": []
   },
   "query": {
     "join": [
@@ -217,6 +233,8 @@ comment on table public.deliverables is '{
 comment on column public.deliverables.title is '{"name": "Title"}';
 comment on column public.deliverables.project_id is '{"name": "Project", "foreignTable": "projects", "displayColumn": "name"}';
 comment on column public.deliverables.status is '{
+  "name": "Status",
+  "hidden_in_form": true,
   "progress": true,
   "values": {
     "Draft": {"variant": "secondary", "icon": "File"},
@@ -227,7 +245,7 @@ comment on column public.deliverables.status is '{
 }';
 comment on column public.deliverables.due_date is '{"name": "Due Date"}';
 comment on column public.deliverables.description is '{"name": "Description"}';
-comment on column public.deliverables.file_path is '{"name": "File", "accept": "*"}';
+comment on column public.deliverables.file_path is '{"name": "Attachment", "variant": "file", "accept": "*"}';
 comment on column public.deliverables.org_id is '{"name": "Organization", "foreignTable": "organisations", "displayColumn": "name"}';
 comment on column public.deliverables.client_feedback is '{"name": "Client Feedback"}';
 comment on column public.deliverables.approved_at is '{"name": "Approved At"}';

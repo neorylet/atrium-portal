@@ -1,3 +1,5 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+
 import { Editor } from "#/components/editor/editor-md"
 import {
   Card,
@@ -7,6 +9,10 @@ import {
   CardTitle,
 } from "#/components/ui/card"
 import { Label } from "#/components/ui/label"
+import { Button } from "#/components/ui/button"
+import { Textarea } from "#/components/ui/textarea"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "#/components/ui/dialog"
+import { useHasPermission } from "#/hooks/use-permissions"
 import { getColumnMetadata } from "#/lib/columns"
 import type {
   ColumnSchema,
@@ -15,7 +21,9 @@ import type {
 } from "#/lib/database-meta.types"
 import { getMetaFields, isTableSchema } from "#/lib/database-meta.types"
 import { formatTitle } from "#/lib/format"
+import { updateResourceMutationOptions } from "#/lib/supabase/data/resource"
 import type { FileObject } from "#/types/fields"
+import { toast } from "sonner"
 
 import { AllCells } from "../cells/all-cells"
 import { getColumnFieldSpan } from "../resource-form-utils"
@@ -31,11 +39,60 @@ export function ResourceDetailView({
   columnsSchema: ColumnSchema[]
   singleResourceData: Record<string, unknown>
 }) {
+  const queryClient = useQueryClient()
+  const schema = resourceSchema.schema ?? ""
+  const resource = resourceSchema.name ?? ""
   const tableSchema = isTableSchema(resourceSchema) ? resourceSchema : null
+  
+  const isClient = !useHasPermission({ schema, resource, action: "update" })
+  const isDeliverables = resource === "deliverables"
+  
+  const { mutateAsync: updateRecord } = useMutation(
+    updateResourceMutationOptions(schema, resource)
+  )
+  
+  const handleApprove = async () => {
+    try {
+      await updateRecord({
+        pk: { id: singleResourceData.id },
+        data: {
+          status: "approved",
+          approved_at: new Date().toISOString()
+        }
+      })
+      queryClient.invalidateQueries({
+        queryKey: ["supasheet", "resource-data", schema, resource],
+      })
+      toast.success("Deliverable approved")
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to approve")
+    }
+  }
+  
+  const handleRequestChanges = async (feedback: string) => {
+    try {
+      await updateRecord({
+        pk: { id: singleResourceData.id },
+        data: {
+          status: "changes_requested",
+          client_feedback: feedback
+        }
+      })
+      queryClient.invalidateQueries({
+        queryKey: ["supasheet", "resource-data", schema, resource],
+      })
+      toast.success("Changes requested")
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to request changes")
+    }
+  }
+  
   if (Object.keys(singleResourceData).length === 0) return null
   const detailColumns =
     columnsSchema?.filter((column) => {
       const name = column.name
+      // Hide client_feedback for clients in deliverables
+      if (isClient && isDeliverables && name === "client_feedback") return false
       return !getMetaFields(resourceSchema).includes(name)
     }) ?? []
 
@@ -88,7 +145,7 @@ export function ResourceDetailView({
                       value={(value as FileObject | null) ?? null}
                     />
                   ) : (
-                    <AllCells columnMetadata={columnMetadata} value={value} />
+                    <AllCells columnMetadata={columnMetadata} value={value} record={singleResourceData} />
                   )
                 ) : (
                   <div className="text-muted">N/A</div>
@@ -97,6 +154,47 @@ export function ResourceDetailView({
             </div>
           )
         })}
+        
+        {/* Client Review Workflow for Deliverables */}
+        {isClient && isDeliverables && (
+          <div className="md:col-span-2 flex gap-2 mt-4 pt-4 border-t">
+            <Button onClick={handleApprove} className="flex-1">
+              Approve
+            </Button>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="flex-1">
+                  Request Changes
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Request Changes</DialogTitle>
+                </DialogHeader>
+                <Textarea
+                  placeholder="Please describe the changes needed..."
+                  className="min-h-[120px]"
+                  id="changes-feedback"
+                />
+                <DialogFooter>
+                  <DialogTrigger asChild>
+                    <Button variant="outline">Cancel</Button>
+                  </DialogTrigger>
+                  <Button
+                    onClick={() => {
+                      const textarea = document.getElementById('changes-feedback') as HTMLTextAreaElement
+                      if (textarea?.value.trim()) {
+                        handleRequestChanges(textarea.value.trim())
+                      }
+                    }}
+                  >
+                    Submit
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

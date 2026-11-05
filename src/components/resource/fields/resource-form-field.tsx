@@ -83,6 +83,12 @@ export function ResourceFormField<S extends DatabaseSchemas>({
 
   const name = columnSchema.name
 
+  // FORCE FILE UPLOADER FOR SPECIFIC COLUMNS
+  const isFileColumn =
+    columnSchema.actual_type === "file" ||
+    columnSchema.name === "file_path" ||
+    columnSchema.name === "logo_url"
+
   return (
     <form.AppField key={columnSchema.id} name={name}>
       {() => (
@@ -94,7 +100,7 @@ export function ResourceFormField<S extends DatabaseSchemas>({
             )}
           </FieldLabel>
           <div>
-            {columnSchema.actual_type === "file" ? (
+            {isFileColumn ? (
               <FileField
                 columnMetadata={columnMetadata}
                 columnSchema={columnSchema}

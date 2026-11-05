@@ -169,3 +169,8 @@
 .rdg-cell {
   line-height: 1.5;
 }
+
+/* Hide Supasheet's table footer aggregation row */
+tfoot {
+  display: none !important;
+}

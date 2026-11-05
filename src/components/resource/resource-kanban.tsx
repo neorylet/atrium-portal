@@ -227,6 +227,11 @@ export function ResourceKanban({
                                   </Badge>
                                 )}
                               </div>
+                              {task.data.organisations?.name && (
+                                <span className="text-xs font-medium bg-secondary text-secondary-foreground px-2 py-0.5 rounded-md w-fit">
+                                  {task.data.organisations.name}
+                                </span>
+                              )}
                               <div className="flex items-center justify-between text-xs text-muted-foreground">
                                 {task.description && (
                                   <span className="line-clamp-1">

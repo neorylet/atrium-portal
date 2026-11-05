@@ -18,13 +18,41 @@ import { PercentageCell } from "./percentage-cell"
 import { RatingCell } from "./rating-cell"
 import { SelectCell } from "./select-cell"
 
+// Helper to check if a string is a UUID
+const isUUID = (str: string) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str)
+
+// Helper to get joined table name from column name
+const getJoinedTableName = (colName: string) => {
+  if (colName === "org_id") return "organisations"
+  if (colName.endsWith("_id")) {
+    return colName.slice(0, -3) + "s"
+  }
+  return colName
+}
+
 export const AllCells = memo(function ({
   columnMetadata,
   value,
+  record,
 }: {
   columnMetadata: ColumnFieldMetadata
   value: unknown
+  record?: Record<string, unknown>
 }) {
+  // Handle foreign key UUIDs - display joined name if available
+  const stringValue = value?.toString()
+  if (isUUID(stringValue || "") && record && columnMetadata.name) {
+    const joinedTableName = getJoinedTableName(columnMetadata.name)
+    const joinedObj = record[joinedTableName] as
+      | Record<string, unknown>
+      | null
+      | undefined
+    if (joinedObj && typeof joinedObj.name === "string") {
+      return joinedObj.name
+    }
+  }
+
   switch (columnMetadata.variant) {
     case "boolean":
       return <BooleanCell value={value as string} />
