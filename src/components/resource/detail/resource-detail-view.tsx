@@ -56,8 +56,7 @@ export function ResourceDetailView({
       await updateRecord({
         pk: { id: singleResourceData.id },
         data: {
-          status: "approved",
-          approved_at: new Date().toISOString()
+          status: "approved"
         }
       })
       queryClient.invalidateQueries({
@@ -91,7 +90,7 @@ export function ResourceDetailView({
   const detailColumns =
     columnsSchema?.filter((column) => {
       const name = column.name
-      // Hide client_feedback for clients in deliverables
+      // Hide client_feedback for clients in deliverables (they have a dedicated UI below)
       if (isClient && isDeliverables && name === "client_feedback") return false
       return !getMetaFields(resourceSchema).includes(name)
     }) ?? []
@@ -130,6 +129,14 @@ export function ResourceDetailView({
               <Label className="inline-flex items-center gap-1.5 text-sm font-medium">
                 {columnMetadata.icon} {formatTitle(columnMetadata.name)}
               </Label>
+              
+              {/* THE FIX: Look for updated_by_name instead of users.name */}
+              {column.name === "client_feedback" && (singleResourceData as any)?.updated_by_name && (
+                <p className="text-xs text-muted-foreground mb-1">
+                  Last updated by: {(singleResourceData as any).updated_by_name}
+                </p>
+              )}
+
               <div className="text-sm text-muted-foreground">
                 {value ? (
                   columnMetadata.variant === "rich_text" ? (
@@ -162,11 +169,7 @@ export function ResourceDetailView({
               Approve
             </Button>
             <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="flex-1">
-                  Request Changes
-                </Button>
-              </DialogTrigger>
+              <DialogTrigger render={<Button variant="outline" className="flex-1">Request Changes</Button>} />
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Request Changes</DialogTitle>
@@ -177,9 +180,7 @@ export function ResourceDetailView({
                   id="changes-feedback"
                 />
                 <DialogFooter>
-                  <DialogTrigger asChild>
-                    <Button variant="outline">Cancel</Button>
-                  </DialogTrigger>
+                  <DialogTrigger render={<Button variant="outline">Cancel</Button>} />
                   <Button
                     onClick={() => {
                       const textarea = document.getElementById('changes-feedback') as HTMLTextAreaElement
