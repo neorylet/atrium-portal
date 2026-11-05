@@ -1,13 +1,7 @@
--- Allow clients to update a deliverable even if it is already approved
-DROP POLICY IF EXISTS deliverables_client_update ON public.deliverables;
+-- Drop the old overly strict policy
+DROP POLICY IF EXISTS storage_client_select ON storage.objects;
 
-CREATE POLICY deliverables_client_update ON public.deliverables
-  FOR UPDATE TO client
-  USING (
-    org_id = (select (auth.jwt() -> 'app_metadata' ->> 'org_id')::uuid)
-    AND status IN ('in_review', 'approved') -- <--- ADDED 'approved' here
-  )
-  WITH CHECK (
-    org_id = (select (auth.jwt() -> 'app_metadata' ->> 'org_id')::uuid)
-    AND status IN ('approved', 'changes_requested')
-  );
+-- Allow authenticated users to generate signed URLs for the deliverable-files bucket
+CREATE POLICY storage_client_select ON storage.objects
+  FOR SELECT TO authenticated, client, "x-admin"
+  USING ( bucket_id = 'deliverable-files' );

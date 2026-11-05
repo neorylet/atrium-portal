@@ -88,13 +88,19 @@ export function ResourceDetailView({
   }
   
   if (Object.keys(singleResourceData).length === 0) return null
+  
   const detailColumns =
     columnsSchema?.filter((column) => {
       const name = column.name
+      // HIDE THE UGLY UUIDs FROM THE MAIN VIEW
+      if (["id", "org_id", "project_id"].includes(name)) return false
+      
       // Hide client_feedback for clients in deliverables (they have a dedicated UI below)
       if (isClient && isDeliverables && name === "client_feedback") return false
+      
       // Include created_by and updated_by for attribution display
       if (name === "created_by" || name === "updated_by") return true
+      
       return !getMetaFields(resourceSchema).includes(name)
     }) ?? []
 

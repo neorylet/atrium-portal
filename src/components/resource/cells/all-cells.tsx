@@ -17,6 +17,7 @@ import { FileCell } from "./file-cell"
 import { PercentageCell } from "./percentage-cell"
 import { RatingCell } from "./rating-cell"
 import { SelectCell } from "./select-cell"
+import { UserCell } from "./user-cell"
 
 // Helper to check if a string is a UUID
 const isUUID = (str: string) =>
@@ -26,8 +27,6 @@ const isUUID = (str: string) =>
 const getJoinedTableName = (colName: string) => {
   if (colName === "org_id") return "organisations"
   if (colName === "project_id") return "projects"
-  // FIXED: Map created_by and updated_by to the users table
-  if (colName === "updated_by" || colName === "created_by") return "users"
   if (colName.endsWith("_id")) {
     return colName.slice(0, -3) + "s"
   }
@@ -43,8 +42,14 @@ export const AllCells = memo(function ({
   value: unknown
   record?: Record<string, unknown>
 }) {
-  // Handle foreign key UUIDs - display joined name if available
   const stringValue = value?.toString()
+  
+  // 1. INTERCEPT USER IDs and use UserCell
+  if (columnMetadata.name === "created_by" || columnMetadata.name === "updated_by") {
+    return value ? <UserCell userId={value as string} /> : <span className="text-muted-foreground">N/A</span>
+  }
+
+  // 2. Handle foreign key UUIDs - display joined name if available
   if (isUUID(stringValue || "") && record && columnMetadata.name) {
     const joinedTableName = getJoinedTableName(columnMetadata.name)
     const joinedObj = record[joinedTableName] as
@@ -71,7 +76,7 @@ export const AllCells = memo(function ({
     case "duration":
       return <DurationCell value={value as string} />
     case "file":
-      return <FileCell value={value} /> // Pass raw value so FileCell can handle string or object
+      return <FileCell value={value} />
     case "avatar":
       return <AvatarCell value={value as FileObject | null} />
     case "rating":

@@ -12,6 +12,7 @@ import { getMetaFields, isTableSchema } from "#/lib/database-meta.types"
 import { formatTitle } from "#/lib/format"
 
 import { AllCells } from "../cells/all-cells"
+import { UserCell } from "../cells/user-cell"
 import { getColumnFieldSpan } from "../resource-form-utils"
 
 export function ResourceMetadataView({
@@ -60,7 +61,12 @@ export function ResourceMetadataView({
                 {columnMetadata.icon} {formatTitle(columnMetadata.name)}
               </Label>
               <div className="text-sm text-muted-foreground">
-                <AllCells columnMetadata={columnMetadata} value={value} />
+                {/* INTERCEPT USER IDs IN THE METADATA CARD */}
+                {(column.name === "updated_by" || column.name === "created_by") ? (
+                  value ? <UserCell userId={value as string} /> : <span className="text-muted">N/A</span>
+                ) : (
+                  <AllCells columnMetadata={columnMetadata} value={value} />
+                )}
               </div>
             </div>
           )

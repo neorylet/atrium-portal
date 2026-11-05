@@ -62,7 +62,7 @@ export const ResourceRowCell = memo(function ({
   const getJoinedTableName = (colName: string) => {
     if (colName === "org_id") return "organisations"
     if (colName.endsWith("_id")) {
-      return colName.slice(0, -3) + "s" // project_id -> projects
+      return colName.slice(0, -3) + "s" 
     }
     return colName
   }
