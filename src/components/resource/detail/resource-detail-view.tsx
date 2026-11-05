@@ -26,6 +26,7 @@ import type { FileObject } from "#/types/fields"
 import { toast } from "sonner"
 
 import { AllCells } from "../cells/all-cells"
+import { UserCell } from "../cells/user-cell"
 import { getColumnFieldSpan } from "../resource-form-utils"
 import { ResourceAvatarDisplay } from "./resource-avatar-display"
 import { ResourceFileDisplay } from "./resource-file-display"
@@ -92,6 +93,8 @@ export function ResourceDetailView({
       const name = column.name
       // Hide client_feedback for clients in deliverables (they have a dedicated UI below)
       if (isClient && isDeliverables && name === "client_feedback") return false
+      // Include created_by and updated_by for attribution display
+      if (name === "created_by" || name === "updated_by") return true
       return !getMetaFields(resourceSchema).includes(name)
     }) ?? []
 
@@ -129,24 +132,19 @@ export function ResourceDetailView({
               <Label className="inline-flex items-center gap-1.5 text-sm font-medium">
                 {columnMetadata.icon} {formatTitle(columnMetadata.name)}
               </Label>
-              
-              {/* THE FIX: Look for updated_by_name instead of users.name */}
-              {column.name === "client_feedback" && (singleResourceData as any)?.updated_by_name && (
-                <p className="text-xs text-muted-foreground mb-1">
-                  Last updated by: {(singleResourceData as any).updated_by_name}
-                </p>
-              )}
-
               <div className="text-sm text-muted-foreground">
-                {value ? (
+                {/* INTERCEPT USER IDs */}
+                {(column.name === "updated_by" || column.name === "created_by") ? (
+                  value ? <UserCell userId={value as string} /> : <span className="text-muted">N/A</span>
+                ) : value ? (
                   columnMetadata.variant === "rich_text" ? (
                     <Editor
                       name={columnMetadata.name}
                       value={value as string}
                       disabled
                     />
-                  ) : columnMetadata.variant === "file" ? (
-                    <ResourceFileDisplay value={value as FileObject[]} />
+                  ) : (columnMetadata.variant === "file" || column.name === "file_path" || column.name === "logo_url") ? (
+                    <ResourceFileDisplay value={value as any} />
                   ) : columnMetadata.variant === "avatar" ? (
                     <ResourceAvatarDisplay
                       value={(value as FileObject | null) ?? null}

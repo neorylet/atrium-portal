@@ -1,14 +1,13 @@
--- Change the column back to text
-ALTER TABLE public.deliverables 
-ALTER COLUMN file_path TYPE text USING 
-  CASE 
-    WHEN file_path IS NULL THEN NULL 
-    ELSE file_path::text 
-  END;
+-- Allow clients to update a deliverable even if it is already approved
+DROP POLICY IF EXISTS deliverables_client_update ON public.deliverables;
 
--- Update the comment so it knows it's a file
-COMMENT ON COLUMN public.deliverables.file_path IS '{"name": "Attachment", "variant": "file", "accept": "*"}';
-
--- Reload the cache
-NOTIFY pgrst, 'reload schema';
-SELECT supasheet.refresh_metadata();
+CREATE POLICY deliverables_client_update ON public.deliverables
+  FOR UPDATE TO client
+  USING (
+    org_id = (select (auth.jwt() -> 'app_metadata' ->> 'org_id')::uuid)
+    AND status IN ('in_review', 'approved') -- <--- ADDED 'approved' here
+  )
+  WITH CHECK (
+    org_id = (select (auth.jwt() -> 'app_metadata' ->> 'org_id')::uuid)
+    AND status IN ('approved', 'changes_requested')
+  );

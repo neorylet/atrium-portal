@@ -25,6 +25,9 @@ const isUUID = (str: string) =>
 // Helper to get joined table name from column name
 const getJoinedTableName = (colName: string) => {
   if (colName === "org_id") return "organisations"
+  if (colName === "project_id") return "projects"
+  // FIXED: Map created_by and updated_by to the users table
+  if (colName === "updated_by" || colName === "created_by") return "users"
   if (colName.endsWith("_id")) {
     return colName.slice(0, -3) + "s"
   }
@@ -48,8 +51,11 @@ export const AllCells = memo(function ({
       | Record<string, unknown>
       | null
       | undefined
-    if (joinedObj && typeof joinedObj.name === "string") {
-      return joinedObj.name
+    
+    // Support both `name` and `email` (for users table)
+    if (joinedObj) {
+      if (typeof joinedObj.name === "string") return joinedObj.name
+      if (typeof joinedObj.email === "string") return joinedObj.email
     }
   }
 
@@ -65,7 +71,7 @@ export const AllCells = memo(function ({
     case "duration":
       return <DurationCell value={value as string} />
     case "file":
-      return <FileCell value={value as FileObject[]} />
+      return <FileCell value={value} /> // Pass raw value so FileCell can handle string or object
     case "avatar":
       return <AvatarCell value={value as FileObject | null} />
     case "rating":

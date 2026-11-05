@@ -1,78 +1,57 @@
 import { useState } from "react"
-
-import { ImageOffIcon } from "lucide-react"
-
-import { formatFileSize, getFileIcon } from "#/lib/files"
-import { cn } from "#/lib/utils"
+import { supabase } from "#/lib/supabase/client"
+import { Button } from "#/components/ui/button"
+import { FileIcon, DownloadIcon, Loader2 } from "lucide-react"
+import { toast } from "sonner"
 import type { FileObject } from "#/types/fields"
 
-import { ResourceFilePreviewDialog } from "./resource-file-preview-dialog"
+export function ResourceFileDisplay({ value }: { value: FileObject[] | string | null | any }) {
+  const [downloading, setDownloading] = useState(false)
 
-export function ResourceFileDisplay({ value }: { value: FileObject[] | null }) {
-  const [previewFile, setPreviewFile] = useState<FileObject | null>(null)
+  if (!value) return <div className="text-muted">N/A</div>
 
-  if (!value?.length) return null
+  let filePath = ""
+  let fileName = ""
+
+  if (typeof value === "string") {
+    filePath = value
+    fileName = value.split("/").pop() || "File"
+  } else if (Array.isArray(value) && value.length > 0) {
+    filePath = value[0].path
+    fileName = value[0].name || filePath.split("/").pop() || "File"
+  } else {
+    return <div className="text-muted">N/A</div>
+  }
+
+  const handleDownload = async () => {
+    try {
+      setDownloading(true)
+      const { data, error } = await supabase.storage
+        .from("deliverable-files")
+        .createSignedUrl(filePath, 60)
+
+      if (error) throw error
+      if (data?.signedUrl) {
+        window.open(data.signedUrl, "_blank")
+      }
+    } catch (err) {
+      toast.error("Failed to generate download link")
+    } finally {
+      setDownloading(false)
+    }
+  }
 
   return (
-    <>
-      <div className="flex flex-col gap-2">
-        {value.map((file, index) => (
-          <FileCard
-            key={`${file.url}-${index}`}
-            file={file}
-            onOpen={() => setPreviewFile(file)}
-          />
-        ))}
-      </div>
-      <ResourceFilePreviewDialog
-        open={Boolean(previewFile)}
-        onOpenChange={(open) => {
-          if (!open) setPreviewFile(null)
-        }}
-        file={previewFile}
-      />
-    </>
-  )
-}
-
-function FileCard({ file, onOpen }: { file: FileObject; onOpen: () => void }) {
-  const type = file.type ?? ""
-  const isImage = type.startsWith("image/")
-  const Icon = getFileIcon(type)
-  const [imageBroken, setImageBroken] = useState(false)
-
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className={cn(
-        "group/file-card flex items-center gap-3 overflow-hidden rounded-md border bg-card p-2 text-left transition-colors hover:bg-accent/40 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
-      )}
+    <Button
+      variant="outline"
+      size="sm"
+      className="h-8 gap-2 max-w-full justify-start"
+      onClick={handleDownload}
+      disabled={downloading}
     >
-      <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted/40">
-        {isImage && !imageBroken ? (
-          <img
-            src={file.url}
-            alt={file.name}
-            className="size-full object-cover"
-            onError={() => setImageBroken(true)}
-          />
-        ) : isImage && imageBroken ? (
-          <ImageOffIcon className="size-5 text-muted-foreground" />
-        ) : (
-          <Icon className="size-5 text-muted-foreground" />
-        )}
-      </div>
-      <div className="flex min-w-0 flex-1 flex-col">
-        <span className="truncate text-sm font-medium text-foreground">
-          {file.name}
-        </span>
-        <span className="truncate text-xs text-muted-foreground">
-          {[formatFileSize(file.size ?? 0), type || "Unknown"]
-            .filter(Boolean)
-            .join(" · ")}
-        </span>
-      </div>
-    </button>
+      {downloading ? <Loader2 className="h-4 w-4 animate-spin shrink-0" /> : <FileIcon className="h-4 w-4 shrink-0" />}
+      <span className="truncate">{fileName}</span>
+      <DownloadIcon className="h-3 w-3 ml-auto shrink-0 opacity-50" />
+    </Button>
   )
 }

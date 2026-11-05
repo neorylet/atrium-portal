@@ -1,53 +1,62 @@
-import { getFileIcon } from "#/lib/files"
+import { useState } from "react"
 import { supabase } from "#/lib/supabase/client"
+import { Button } from "#/components/ui/button"
+import { FileIcon, DownloadIcon, Loader2 } from "lucide-react"
+import { toast } from "sonner"
 import type { FileObject } from "#/types/fields"
 
-export function FileCell({ value }: { value: FileObject[] | string | null }) {
-  const handleDownload = async (filePath: string) => {
-    const { data, error } = await supabase.storage
-      .from("deliverable-files")
-      .createSignedUrl(filePath, 60)
-    if (data?.signedUrl) {
-      window.open(data.signedUrl, "_blank")
+export function FileCell({ value }: { value: FileObject[] | string | null | unknown }) {
+  const [downloading, setDownloading] = useState(false)
+
+  if (!value) return <div className="text-muted-foreground">N/A</div>
+
+  // Extract path and name whether it's a string or an array of objects
+  let filePath = ""
+  let fileName = ""
+
+  if (typeof value === "string") {
+    filePath = value
+    fileName = value.split("/").pop() || "File"
+  } else if (Array.isArray(value) && value.length > 0) {
+    filePath = value[0].path
+    fileName = value[0].name || filePath.split("/").pop() || "File"
+  } else {
+    return <div className="text-muted-foreground">N/A</div>
+  }
+
+  const handleDownload = async () => {
+    try {
+      setDownloading(true)
+      const { data, error } = await supabase.storage
+        .from("deliverable-files")
+        .createSignedUrl(filePath, 60)
+
+      if (error) throw error
+      if (data?.signedUrl) {
+        window.open(data.signedUrl, "_blank")
+      }
+    } catch (err) {
+      toast.error("Failed to download file")
+    } finally {
+      setDownloading(false)
     }
   }
 
-  // Handle string value (file path) vs array of file objects
-  if (typeof value === "string" && value) {
-    const fileName = value.split("/").pop() || "Uploaded File"
-    const Icon = getFileIcon("")
-    return (
-      <button
-        type="button"
-        onClick={() => handleDownload(value)}
-        className="flex flex-nowrap items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <Icon className="size-4" />
-        <span>{fileName}</span>
-      </button>
-    )
-  }
-
-  if (!Array.isArray(value) || value.length === 0) {
-    return null
-  }
-
   return (
-    <div className="flex flex-nowrap items-center gap-2">
-      {value.map((file, index) => {
-        const Icon = getFileIcon(file.type)
-        return (
-          <button
-            key={index}
-            type="button"
-            onClick={() => file.url && handleDownload(file.url)}
-            className="flex flex-nowrap items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <Icon className="size-4" />
-            <span>{file.name}</span>
-          </button>
-        )
-      })}
-    </div>
+    <Button
+      variant="outline"
+      size="sm"
+      className="h-8 max-w-full justify-start gap-2"
+      onClick={handleDownload}
+      disabled={downloading}
+    >
+      {downloading ? (
+        <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+      ) : (
+        <FileIcon className="h-4 w-4 shrink-0" />
+      )}
+      <span className="truncate">{fileName}</span>
+      <DownloadIcon className="ml-auto h-3 w-3 shrink-0 opacity-50" />
+    </Button>
   )
 }
