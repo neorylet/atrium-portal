@@ -1,8 +1,19 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useNavigate } from "@tanstack/react-router"
+import { useStore } from "@tanstack/react-form"
+import { useBlocker, useNavigate } from "@tanstack/react-router"
+import { useEffect, useMemo } from "react"
 
 import { toast } from "sonner"
 
+import { Button } from "#/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "#/components/ui/dialog"
 import type {
   ColumnSchema,
   PrimaryKey,
@@ -48,11 +59,13 @@ export function ResourceUpdateForm({
     (col) => !isSkippedForUpdate(col, primaryKeys) && (col.is_updatable ?? true)
   )
 
-  const defaultValues = Object.fromEntries(
-    editableCols.map((col) => [
-      col.name ?? col.id,
-      getUpdateInitialValue(col, record),
-    ])
+  const defaultValues = useMemo(() => 
+    Object.fromEntries(
+      editableCols.map((col) => [
+        col.name ?? col.id,
+        getUpdateInitialValue(col, record),
+      ])
+    ), [editableCols, record]
   )
 
   const { mutateAsync: updateRow } = useMutation(
@@ -80,21 +93,74 @@ export function ResourceUpdateForm({
     },
   })
 
-  return (
-    <form
-      onSubmit={(e) => {
+  const isDirty = useStore(form.store, (s) => s.isDirty)
+  const currentValues = useStore(form.store, (s) => s.values)
+  const isActuallyDirty = isDirty || JSON.stringify(currentValues) !== JSON.stringify(defaultValues)
+
+  // 1. Block internal navigation (withResolver is REQUIRED to show the modal)
+  const blocker = useBlocker({
+    shouldBlockFn: () => isActuallyDirty,
+    enableBeforeUnload: true,
+    withResolver: true, // <--- THIS IS THE FIX
+  })
+
+  // 2. Block closing the browser tab
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isActuallyDirty) {
         e.preventDefault()
-        form.handleSubmit()
-      }}
-    >
-      <ResourceFormLayout
-        tableSchema={tableSchema}
-        writableCols={editableCols}
-        form={form}
-        mode="update"
-        headerTitle="Edit record"
-        saveOnly={saveOnly}
-      />
-    </form>
+        e.returnValue = ""
+      }
+    }
+    window.addEventListener("beforeunload", handleBeforeUnload)
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload)
+  }, [isActuallyDirty])
+
+  return (
+    <>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          form.handleSubmit()
+        }}
+      >
+        <ResourceFormLayout
+          tableSchema={tableSchema}
+          writableCols={editableCols}
+          form={form}
+          mode="update"
+          headerTitle="Edit record"
+          saveOnly={saveOnly}
+        />
+      </form>
+
+      {/* --- UNSAVED CHANGES DIALOG --- */}
+      {blocker.status === "blocked" && (
+        <Dialog
+          open={true}
+          onOpenChange={(open) => {
+            if (!open && blocker.reset) blocker.reset()
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Unsaved Changes</DialogTitle>
+              <DialogDescription>
+                You have unsaved progress on this form. Are you sure you want to
+                leave this page? Your changes will be lost.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => blocker.reset?.()}>
+                Keep Editing
+              </Button>
+              <Button variant="destructive" onClick={() => blocker.proceed?.()}>
+                Discard Changes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
   )
 }
