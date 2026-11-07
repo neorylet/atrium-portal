@@ -1,15 +1,7 @@
 import { format, formatDistanceToNow } from "date-fns"
-import {
-  AlertCircle,
-  CheckCircle,
-  Database,
-  FileJson,
-  Shield,
-  Table,
-  User,
-  XCircle,
-} from "lucide-react"
+import { ArrowRight, CheckCircle, Clock, XCircle } from "lucide-react"
 
+import { UserCell } from "#/components/resource/cells/user-cell"
 import { Badge } from "#/components/ui/badge"
 import {
   Card,
@@ -18,231 +10,120 @@ import {
   CardHeader,
   CardTitle,
 } from "#/components/ui/card"
-import { ScrollArea } from "#/components/ui/scroll-area"
-import { Separator } from "#/components/ui/separator"
 import type { Tables } from "#/lib/database.types"
+import { AuditLogTarget } from "./audit-log-target"
 
 type AuditLog = Tables<{ schema: "supasheet" }, "audit_logs">
 
-const opVariant = (op: string) => {
-  if (op === "INSERT") return "default" as const
-  if (op === "UPDATE") return "secondary" as const
-  if (op === "DELETE") return "destructive" as const
-  return "outline" as const
-}
-
-function Field({
-  label,
-  children,
-}: {
-  label: string
-  children: React.ReactNode
-}) {
-  return (
-    <div className="space-y-1">
-      <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-        {label}
-      </p>
-      {children}
-    </div>
-  )
-}
-
 export function AuditLogDetail({ data }: { data: AuditLog }) {
+  const isUpdate = data.operation === "UPDATE"
+  const isInsert = data.operation === "INSERT"
+  const isDelete = data.operation === "DELETE"
+
+  const changedFields = (data.changed_fields as string[]) || []
+  const oldData = (data.old_data as Record<string, unknown>) || {}
+  const newData = (data.new_data as Record<string, unknown>) || {}
+
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 pb-12">
+      {/* Header Card */}
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
-            <CardTitle>Audit Log Details</CardTitle>
-            {data.is_error ? (
-              <Badge variant="destructive" className="gap-1">
-                <XCircle className="h-3 w-3" />
-                Error
-              </Badge>
-            ) : (
-              <Badge
-                variant="outline"
-                className="gap-1 border-green-600 text-green-600"
-              >
-                <CheckCircle className="h-3 w-3" />
-                Success
-              </Badge>
-            )}
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-full ${isUpdate ? 'bg-blue-500/10 text-blue-500' : isInsert ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                {data.is_error ? <XCircle className="h-5 w-5" /> : <CheckCircle className="h-5 w-5" />}
+              </div>
+              <div>
+                <CardTitle className="text-xl">
+                  {isUpdate ? "Record Updated" : isInsert ? "Record Created" : "Record Deleted"}
+                </CardTitle>
+                <CardDescription className="flex items-center gap-1 mt-1">
+                  <Clock className="h-3 w-3" />
+                  {formatDistanceToNow(new Date(data.created_at), { addSuffix: true })}
+                  <span className="mx-1">•</span>
+                  {format(new Date(data.created_at), "PPP 'at' p")}
+                </CardDescription>
+              </div>
+            </div>
           </div>
-          <CardDescription>
-            {formatDistanceToNow(new Date(data.created_at), {
-              addSuffix: true,
-            })}
-          </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="ID">
-              <p className="font-mono text-sm break-all">{data.id}</p>
-            </Field>
-            <Field label="Operation">
-              <Badge variant={opVariant(data.operation)} className="w-fit">
-                {data.operation}
-              </Badge>
-            </Field>
-            <Field label="Schema">
-              <p className="flex items-center gap-1 font-mono text-sm">
-                <Database className="h-3 w-3 shrink-0 text-muted-foreground" />
-                {data.schema_name}
-              </p>
-            </Field>
-            <Field label="Table">
-              <p className="flex items-center gap-1 font-mono text-sm">
-                <Table className="h-3 w-3 shrink-0 text-muted-foreground" />
-                {data.table_name}
-              </p>
-            </Field>
-            <Field label="Record ID">
-              <p className="font-mono text-sm">{data.record_id ?? "—"}</p>
-            </Field>
-            <Field label="Created At">
-              <p className="text-sm text-muted-foreground">
-                {format(new Date(data.created_at), "PPpp")}
-              </p>
-            </Field>
-            <Field label="Created By">
-              <p className="flex items-center gap-1 font-mono text-sm">
-                <User className="h-3 w-3 shrink-0 text-muted-foreground" />
-                {data.created_by ?? "—"}
-              </p>
-            </Field>
-            <Field label="Role">
-              <p className="flex items-center gap-1 text-sm">
-                <Shield className="h-3 w-3 shrink-0 text-muted-foreground" />
-                {data.role ? (
-                  <Badge variant="outline" className="w-fit">
-                    {data.role}
-                  </Badge>
-                ) : (
-                  "—"
-                )}
-              </p>
-            </Field>
-            <Field label="User Type">
-              <Badge
-                variant={data.user_type === "system" ? "secondary" : "outline"}
-                className="w-fit capitalize"
-              >
-                {data.user_type.replace("_", " ")}
-              </Badge>
-            </Field>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">User</p>
+              <div className="flex items-center gap-2">
+                {data.created_by ? <UserCell userId={data.created_by} /> : <span className="text-sm">System Automation</span>}
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Action</p>
+              <Badge variant="outline" className="font-mono">{data.operation}</Badge>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Target Record</p>
+              <AuditLogTarget tableName={data.table_name} recordId={data.record_id} />
+            </div>
           </div>
-
-          {data.is_error && (data.error_code || data.error_message) && (
-            <>
-              <Separator />
-              <div className="flex flex-col gap-2">
-                <p className="flex items-center gap-2 text-sm font-semibold text-destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  Error Details
-                </p>
-                <div className="rounded-lg bg-destructive/10 p-3">
-                  {data.error_code && (
-                    <p className="text-sm font-medium text-destructive">
-                      {data.error_code}
-                    </p>
-                  )}
-                  {data.error_message && (
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {data.error_message}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
-
-          {data.changed_fields && data.changed_fields.length > 0 && (
-            <>
-              <Separator />
-              <div className="flex flex-col gap-2">
-                <p className="text-sm font-semibold">Changed Fields</p>
-                <div className="flex flex-wrap gap-1">
-                  {data.changed_fields.map((f) => (
-                    <Badge
-                      key={f}
-                      variant="outline"
-                      className="font-mono text-xs"
-                    >
-                      {f}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
-
-          {data.metadata &&
-            typeof data.metadata === "object" &&
-            Object.keys(data.metadata).length > 0 && (
-              <>
-                <Separator />
-                <div className="flex flex-col gap-2">
-                  <p className="flex items-center gap-2 text-sm font-semibold">
-                    <FileJson className="h-4 w-4" />
-                    Metadata
-                  </p>
-                  <ScrollArea className="max-h-32 w-full rounded-md border p-2">
-                    <pre className="text-xs">
-                      {JSON.stringify(data.metadata, null, 2)}
-                    </pre>
-                  </ScrollArea>
-                </div>
-              </>
-            )}
         </CardContent>
       </Card>
 
-      {(data.old_data || data.new_data) && (
+      {/* What Changed (The Diff) */}
+      {isUpdate && changedFields.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Data Changes</CardTitle>
-            <CardDescription>
-              {data.operation === "INSERT" && "New data created"}
-              {data.operation === "UPDATE" && "Data modifications"}
-              {data.operation === "DELETE" && "Data removed"}
-            </CardDescription>
+            <CardTitle className="text-lg">What Changed</CardTitle>
+            <CardDescription>The following fields were modified</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col gap-2">
-                <p className="text-sm font-semibold">Old Data</p>
-                {data.old_data ? (
-                  <ScrollArea className="max-h-64 w-full rounded-md border">
-                    <pre className="p-3 text-xs">
-                      {JSON.stringify(data.old_data, null, 2)}
-                    </pre>
-                  </ScrollArea>
-                ) : (
-                  <div className="flex h-20 items-center justify-center rounded-md border border-dashed">
-                    <p className="text-xs text-muted-foreground">No data</p>
+          <CardContent className="space-y-4">
+            {changedFields.map((field) => {
+              if (["updated_at", "updated_by", "created_at", "created_by"].includes(field)) return null;
+              const oldVal = oldData[field];
+              const newVal = newData[field];
+              if (oldVal === newVal) return null;
+
+              return (
+                <div key={field} className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 p-3 rounded-lg bg-muted/50 border">
+                  <div className="w-32 shrink-0">
+                    <p className="font-mono text-sm font-medium">{field}</p>
                   </div>
-                )}
-              </div>
-              <div className="flex flex-col gap-2">
-                <p className="text-sm font-semibold">New Data</p>
-                {data.new_data ? (
-                  <ScrollArea className="max-h-64 w-full rounded-md border">
-                    <pre className="p-3 text-xs">
-                      {JSON.stringify(data.new_data, null, 2)}
-                    </pre>
-                  </ScrollArea>
-                ) : (
-                  <div className="flex h-20 items-center justify-center rounded-md border border-dashed">
-                    <p className="text-xs text-muted-foreground">No data</p>
+                  <div className="flex flex-1 items-center gap-3 text-sm overflow-hidden">
+                    <span className="line-through text-red-500/70 truncate max-w-[200px]">
+                      {oldVal === null || oldVal === undefined || oldVal === "" ? "empty" : String(oldVal)}
+                    </span>
+                    <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <span className="text-green-600 font-medium truncate max-w-[200px]">
+                      {newVal === null || newVal === undefined || newVal === "" ? "empty" : String(newVal)}
+                    </span>
                   </div>
-                )}
-              </div>
-            </div>
+                </div>
+              )
+            })}
           </CardContent>
         </Card>
       )}
+
+      {/* Subtle Developer Payload */}
+      <details className="group [&_summary::-webkit-details-marker]:hidden">
+        <summary className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors px-2 py-1">
+          <span className="font-mono">View raw database payload</span>
+          <ArrowRight className="h-3 w-3 transition-transform group-open:rotate-90" />
+        </summary>
+        <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-4 px-2">
+          <div>
+            <p className="text-[10px] font-mono mb-1 text-red-500/70">OLD_DATA</p>
+            <pre className="text-[10px] bg-muted/30 p-2 rounded-md overflow-auto max-h-48 text-muted-foreground/80 font-mono">
+              {JSON.stringify(data.old_data, null, 2) || "null"}
+            </pre>
+          </div>
+          <div>
+            <p className="text-[10px] font-mono mb-1 text-green-500/70">NEW_DATA</p>
+            <pre className="text-[10px] bg-muted/30 p-2 rounded-md overflow-auto max-h-48 text-muted-foreground/80 font-mono">
+              {JSON.stringify(data.new_data, null, 2) || "null"}
+            </pre>
+          </div>
+        </div>
+      </details>
     </div>
   )
 }
