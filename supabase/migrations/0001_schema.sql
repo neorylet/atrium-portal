@@ -10,6 +10,11 @@ create table public.organisations (
   name text not null check (char_length(name) between 2 and 120),
   slug text not null unique check (slug ~ '^[a-z0-9-]+$'),
   billing_email text check (billing_email like '%@%'),
+  status text not null default 'active',
+  logo_url text,
+  website text,
+  phone_number text,
+  tax_id text,
   timezone text not null default 'UTC',
   currency_code char(3) not null default 'USD',
   address_line_1 text,
@@ -100,20 +105,23 @@ end $$;
 create trigger trg_set_org_deliverables before insert or update on public.deliverables for each row execute function public.set_org_from_project();
 create trigger trg_set_org_invoices before insert or update on public.invoices for each row execute function public.set_org_from_project();
 
+-- FIXED TRIGGER: Nested IFs and ::text casts prevent enum errors on other tables
 create or replace function public.touch_row()
 returns trigger
 language plpgsql
-security invoker
+security definer
 set search_path = ''
 as $$
 begin
   new.updated_at = now();
   new.updated_by = auth.uid();
+  
   if tg_table_name = 'deliverables' then
-    if new.status = 'approved' and old.status != 'approved' then
+    if new.status::text = 'approved' and old.status::text <> 'approved' then
       new.approved_at = now();
     end if;
   end if;
+  
   return new;
 end;
 $$;
@@ -185,11 +193,11 @@ comment on column public.projects.org_id is '{"name": "Organization", "foreignTa
 comment on column public.projects.status is '{
   "progress": true,
   "values": {
-    "Planning": {"variant": "secondary", "icon": "Pencil"},
-    "Active": {"variant": "info", "icon": "Loader"},
-    "On Hold": {"variant": "warning", "icon": "Pause"},
-    "Completed": {"variant": "success", "icon": "CheckCircle2"},
-    "Archived": {"variant": "default", "icon": "Archive"}
+    "planning": {"variant": "secondary", "icon": "Pencil"},
+    "active": {"variant": "info", "icon": "Loader"},
+    "on_hold": {"variant": "warning", "icon": "Pause"},
+    "completed": {"variant": "success", "icon": "CheckCircle2"},
+    "archived": {"variant": "default", "icon": "Archive"}
   }
 }';
 comment on column public.projects.start_date is '{"name": "Start Date"}';
@@ -237,10 +245,10 @@ comment on column public.deliverables.status is '{
   "hidden_in_form": true,
   "progress": true,
   "values": {
-    "Draft": {"variant": "secondary", "icon": "File"},
-    "In Review": {"variant": "warning", "icon": "Eye"},
-    "Changes Requested": {"variant": "destructive", "icon": "AlertCircle"},
-    "Approved": {"variant": "success", "icon": "CheckCircle2"}
+    "draft": {"variant": "secondary", "icon": "File"},
+    "in_review": {"variant": "warning", "icon": "Eye"},
+    "changes_requested": {"variant": "destructive", "icon": "AlertCircle"},
+    "approved": {"variant": "success", "icon": "CheckCircle2"}
   }
 }';
 comment on column public.deliverables.due_date is '{"name": "Due Date"}';
@@ -272,11 +280,11 @@ comment on column public.invoices.invoice_number is '{"name": "Invoice Number"}'
 comment on column public.invoices.project_id is '{"name": "Project", "foreignTable": "projects", "displayColumn": "name"}';
 comment on column public.invoices.status is '{
   "values": {
-    "Draft": {"variant": "secondary", "icon": "File"},
-    "Sent": {"variant": "info", "icon": "Send"},
-    "Paid": {"variant": "success", "icon": "CheckCircle2"},
-    "Overdue": {"variant": "destructive", "icon": "AlertCircle"},
-    "Void": {"variant": "default", "icon": "XCircle"}
+    "draft": {"variant": "secondary", "icon": "File"},
+    "sent": {"variant": "info", "icon": "Send"},
+    "paid": {"variant": "success", "icon": "CheckCircle2"},
+    "overdue": {"variant": "destructive", "icon": "AlertCircle"},
+    "void": {"variant": "default", "icon": "XCircle"}
   }
 }';
 comment on column public.invoices.amount is '{"name": "Amount", "aggregate": "sum"}';

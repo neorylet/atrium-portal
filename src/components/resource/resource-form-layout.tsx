@@ -22,7 +22,6 @@ import {
   getProgressFields,
 } from "./resource-form-utils"
 
-
 function SmartTimezoneInferenceSync({ form }: { form: ResourceFormApi }) {
   const countryCode = useStore(
     form.baseStore,
@@ -84,13 +83,9 @@ export function ResourceFormLayout({
   const { plan, colByName, progressFields } = useMemo(() => {
     // 1. Get the columns that will be rendered as progress steppers (e.g., status)
     const progressData = getProgressFields(writableCols)
-    const progressNames = progressData.map((p) => p.col.name)
 
-    // 2. Filter out those columns from the form sections so we don't render them twice
-    const filteredSections = tableMeta.fields?.sections?.map((section) => ({
-      ...section,
-      fields: section.fields?.filter((f) => !progressNames.includes(f)),
-    }))
+    // 2. DO NOT filter out the columns anymore. We want them in the grid too!
+    const filteredSections = tableMeta.fields?.sections
 
     const writableNames = new Set(writableCols.map((c) => c.name ?? c.id ?? ""))
 

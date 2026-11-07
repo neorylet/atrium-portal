@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useStore } from "@tanstack/react-form"
 import { useBlocker, useNavigate } from "@tanstack/react-router"
-import { useEffect, useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import { toast } from "sonner"
 
@@ -68,6 +68,14 @@ export function ResourceUpdateForm({
     ), [editableCols, record]
   )
 
+  // Track the baseline for the dirty check
+  const [baseline, setBaseline] = useState(defaultValues)
+
+  // Sync baseline if the parent record refetches
+  useEffect(() => {
+    setBaseline(defaultValues)
+  }, [defaultValues])
+
   const { mutateAsync: updateRow } = useMutation(
     updateResourceMutationOptions(schema, resource)
   )
@@ -84,6 +92,11 @@ export function ResourceUpdateForm({
         queryKey: ["supasheet", "resource-data", schema, resource],
       })
       toast.success("Record updated")
+      
+      // THE FIX: Update baseline and reset form so it's no longer dirty
+      setBaseline(value)
+      form.reset({ values: value })
+
       if ((meta as { target?: string } | undefined)?.target === "close") {
         navigate({
           to: "/$schema/resource/$resource",
@@ -95,13 +108,15 @@ export function ResourceUpdateForm({
 
   const isDirty = useStore(form.store, (s) => s.isDirty)
   const currentValues = useStore(form.store, (s) => s.values)
-  const isActuallyDirty = isDirty || JSON.stringify(currentValues) !== JSON.stringify(defaultValues)
+  
+  // Compare against the baseline instead of the original defaultValues
+  const isActuallyDirty = isDirty || JSON.stringify(currentValues) !== JSON.stringify(baseline)
 
-  // 1. Block internal navigation (withResolver is REQUIRED to show the modal)
+  // 1. Block internal navigation
   const blocker = useBlocker({
     shouldBlockFn: () => isActuallyDirty,
     enableBeforeUnload: true,
-    withResolver: true, // <--- THIS IS THE FIX
+    withResolver: true,
   })
 
   // 2. Block closing the browser tab
