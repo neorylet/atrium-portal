@@ -55,10 +55,11 @@ create trigger trg_calc_invoice_total
   for each row execute function public.calculate_invoice_total();
 
 -- 4. Hide from sidebar, configure form layout
+-- The "hidden": true and "display": "none" flags force it out of the navigation
 comment on table public.invoice_items is '{
-  "display": "Line Items",
-  "icon": "List",
+  "display": "none",
   "hidden": true,
+  "icon": "List",
   "fields": {
     "sections": [
       {"id": "details", "title": "Line Item", "fields": ["description", "quantity", "unit_price"]}

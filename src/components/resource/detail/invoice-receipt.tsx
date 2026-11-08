@@ -1,8 +1,11 @@
 import { PrinterIcon } from "lucide-react"
+import { useQuery } from "@tanstack/react-query"
 import { Badge } from "#/components/ui/badge"
 import { Button } from "#/components/ui/button"
 import { Card, CardContent } from "#/components/ui/card"
+import { Skeleton } from "#/components/ui/skeleton"
 import { formatDate } from "#/lib/format"
+import { supabase } from "#/lib/supabase/client" 
 
 interface InvoiceItem {
   description: string
@@ -17,21 +20,59 @@ interface InvoiceReceiptProps {
 
 export function InvoiceReceipt({
   invoiceId,
-  record,
+  record: initialRecord,
 }: InvoiceReceiptProps) {
-  // Read line items directly from the JSONB column in the record
-  const lineItems = (record.line_items as InvoiceItem[]) || []
+  // Fetch the items and org separately to avoid join issues
+  const { data: fetchedData, isLoading } = useQuery({
+    queryKey: ["invoice-receipt", invoiceId],
+    queryFn: async () => {
+      // 1. Fetch the items
+      const { data: items, error: itemsError } = await supabase
+        .from("invoice_items")
+        .select("*")
+        .eq("invoice_id", invoiceId)
+      
+      if (itemsError) {
+        console.error("Error fetching items:", itemsError)
+        throw itemsError
+      }
 
-  const invoiceNumber = record.invoice_number as string
-  const status = record.status as string
-  const amount = record.amount as number
-  const currency = record.currency as string
-  const issuedOn = record.issued_on as string
-  const dueOn = record.due_on as string | null
-  const notes = record.notes as string | null
+      // 2. Fetch the org name (if not already in initialRecord)
+      let orgName = null
+      const orgId = initialRecord?.org_id as string
+      if (orgId && !initialRecord?.organisations) {
+        const { data: org } = await supabase
+          .from("organisations")
+          .select("name")
+          .eq("id", orgId)
+          .single()
+        orgName = org?.name
+      }
 
-  const orgName = (record.organisations as Record<string, unknown> | undefined)?.name as string | undefined
-  const projectName = (record.projects as Record<string, unknown> | undefined)?.name as string | undefined
+      console.log("Fetched Items:", items)
+      console.log("Fetched Org:", orgName)
+
+      return { items, orgName }
+    },
+    staleTime: 1000 * 60 * 5, 
+  })
+
+  const lineItems = fetchedData?.items || (initialRecord?.invoice_items as InvoiceItem[]) || []
+  
+  const invoiceNumber = initialRecord?.invoice_number as string
+  const status = initialRecord?.status as string
+  const amount = initialRecord?.amount as number
+  const currency = (initialRecord?.currency as string) || "USD"
+  const issuedOn = initialRecord?.issued_on as string
+  const dueOn = initialRecord?.due_on as string | null
+  const notes = initialRecord?.notes as string | null
+  
+  // Handle the case where organisations comes back as an array [ { name: '...' } ]
+  const orgData = initialRecord?.organisations as any
+  let orgName = fetchedData?.orgName || (Array.isArray(orgData) ? orgData[0]?.name : orgData?.name) || "Unknown Organization"
+  
+  const projectData = initialRecord?.projects as any
+  const projectName = Array.isArray(projectData) ? projectData[0]?.name : projectData?.name
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("en-US", {
@@ -56,14 +97,14 @@ export function InvoiceReceipt({
           </div>
           <div className="text-right">
             <Badge variant={status === "paid" ? "default" : status === "overdue" ? "destructive" : "secondary"} className="text-sm font-semibold uppercase">
-              {status.replace(/_/g, " ")}
+              {status?.replace(/_/g, " ")}
             </Badge>
           </div>
         </div>
 
         <div className="mb-8">
           <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Bill To</p>
-          <p className="font-semibold text-lg">{orgName || "Unknown Organization"}</p>
+          <p className="font-semibold text-lg">{orgName}</p>
           {projectName && <p className="text-gray-600">Project: {projectName}</p>}
         </div>
 
@@ -89,9 +130,13 @@ export function InvoiceReceipt({
               </tr>
             </thead>
             <tbody>
-              {lineItems.length === 0 ? (
+              {isLoading && lineItems.length === 0 ? (
+                 <tr>
+                   <td colSpan={4} className="text-center py-8 text-gray-400 text-sm">Loading items...</td>
+                 </tr>
+              ) : lineItems.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="text-center py-8 text-gray-400 text-sm">No line items</td>
+                  <td colSpan={4} className="text-center py-8 text-gray-400 text-sm">No line items found in database</td>
                 </tr>
               ) : (
                 lineItems.map((item, index) => (
