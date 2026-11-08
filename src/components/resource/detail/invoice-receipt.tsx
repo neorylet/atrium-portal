@@ -25,19 +25,16 @@ export function InvoiceReceipt({
   // Fetch the items and org separately to avoid join issues
   const { data: fetchedData, isLoading } = useQuery({
     queryKey: ["invoice-receipt", invoiceId],
+    // 🛑 SAFETY CHECK: Only fetch if invoiceId actually exists
+    enabled: !!invoiceId,
     queryFn: async () => {
-      // 1. Fetch the items
       const { data: items, error: itemsError } = await supabase
         .from("invoice_items")
         .select("*")
         .eq("invoice_id", invoiceId)
       
-      if (itemsError) {
-        console.error("Error fetching items:", itemsError)
-        throw itemsError
-      }
+      if (itemsError) throw itemsError
 
-      // 2. Fetch the org name (if not already in initialRecord)
       let orgName = null
       const orgId = initialRecord?.org_id as string
       if (orgId && !initialRecord?.organisations) {
@@ -49,13 +46,13 @@ export function InvoiceReceipt({
         orgName = org?.name
       }
 
-      console.log("Fetched Items:", items)
-      console.log("Fetched Org:", orgName)
-
       return { items, orgName }
     },
     staleTime: 1000 * 60 * 5, 
   })
+
+  // 🛑 SAFETY CHECK: If no ID, don't render the receipt
+  if (!invoiceId) return null;
 
   const lineItems = fetchedData?.items || (initialRecord?.invoice_items as InvoiceItem[]) || []
   
@@ -67,7 +64,6 @@ export function InvoiceReceipt({
   const dueOn = initialRecord?.due_on as string | null
   const notes = initialRecord?.notes as string | null
   
-  // Handle the case where organisations comes back as an array [ { name: '...' } ]
   const orgData = initialRecord?.organisations as any
   let orgName = fetchedData?.orgName || (Array.isArray(orgData) ? orgData[0]?.name : orgData?.name) || "Unknown Organization"
   
