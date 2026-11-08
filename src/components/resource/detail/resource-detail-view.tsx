@@ -30,6 +30,7 @@ import { UserCell } from "../cells/user-cell"
 import { getColumnFieldSpan } from "../resource-form-utils"
 import { ResourceAvatarDisplay } from "./resource-avatar-display"
 import { ResourceFileDisplay } from "./resource-file-display"
+import { InvoiceReceipt } from "./invoice-receipt"
 
 export function ResourceDetailView({
   resourceSchema,
@@ -56,9 +57,7 @@ export function ResourceDetailView({
     try {
       await updateRecord({
         pk: { id: singleResourceData.id },
-        data: {
-          status: "approved"
-        }
+        data: { status: "approved" }
       })
       queryClient.invalidateQueries({
         queryKey: ["supasheet", "resource-data", schema, resource],
@@ -73,10 +72,7 @@ export function ResourceDetailView({
     try {
       await updateRecord({
         pk: { id: singleResourceData.id },
-        data: {
-          status: "changes_requested",
-          client_feedback: feedback
-        }
+        data: { status: "changes_requested", client_feedback: feedback }
       })
       queryClient.invalidateQueries({
         queryKey: ["supasheet", "resource-data", schema, resource],
@@ -89,18 +85,29 @@ export function ResourceDetailView({
   
   if (Object.keys(singleResourceData).length === 0) return null
   
+  // ==========================================
+  // INVOICE RECEIPT OVERRIDE
+  // If the resource is 'invoices', render the custom receipt
+  // and completely bypass the generic grid layout below.
+  // ==========================================
+  if (resource === "invoices") {
+    return (
+      <div className="flex flex-col gap-6">
+        <InvoiceReceipt
+          invoiceId={singleResourceData.id as string}
+          record={singleResourceData}
+        />
+      </div>
+    )
+  }
+
+  // Generic layout for Projects, Deliverables, Organisations, etc.
   const detailColumns =
     columnsSchema?.filter((column) => {
       const name = column.name
-      // HIDE THE UGLY UUIDs FROM THE MAIN VIEW
       if (["id", "org_id", "project_id"].includes(name)) return false
-      
-      // Hide client_feedback for clients in deliverables (they have a dedicated UI below)
       if (isClient && isDeliverables && name === "client_feedback") return false
-      
-      // Include created_by and updated_by for attribution display
       if (name === "created_by" || name === "updated_by") return true
-      
       return !getMetaFields(resourceSchema).includes(name)
     }) ?? []
 
@@ -139,7 +146,6 @@ export function ResourceDetailView({
                 {columnMetadata.icon} {formatTitle(columnMetadata.name)}
               </Label>
               <div className="text-sm text-muted-foreground">
-                {/* INTERCEPT USER IDs */}
                 {(column.name === "updated_by" || column.name === "created_by") ? (
                   value ? <UserCell userId={value as string} /> : <span className="text-muted">N/A</span>
                 ) : value ? (
@@ -165,8 +171,7 @@ export function ResourceDetailView({
             </div>
           )
         })}
-        
-        {/* Client Review Workflow for Deliverables */}
+
         {isClient && isDeliverables && (
           <div className="md:col-span-2 flex gap-2 mt-4 pt-4 border-t">
             <Button onClick={handleApprove} className="flex-1">

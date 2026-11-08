@@ -74,6 +74,7 @@ create table public.invoices (
   due_on date,
   paid_on date,
   notes text,
+  line_items jsonb not null default '[]'::jsonb, -- ADDED THIS
   created_by uuid default auth.uid() references auth.users(id) on delete set null,
   updated_by uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now(),
@@ -264,10 +265,10 @@ comment on table public.invoices is '{
   "icon": "Receipt",
   "fields": {
     "sections": [
-      {"id": "overview", "title": "Overview", "fields": ["invoice_number", "project_id", "status", "amount", "currency", "issued_on", "due_on"]},
-      {"id": "details", "title": "Details", "fields": ["notes"]}
+      {"id": "overview", "title": "Invoice Details", "fields": ["invoice_number", "project_id", "status", "issued_on", "due_on", "paid_on"]},
+      {"id": "financials", "title": "Financials", "fields": ["amount", "currency", "line_items", "notes"]}
     ],
-    "metadata": ["id", "org_id", "created_at", "updated_at", "created_by", "updated_by", "paid_on"]
+    "metadata": ["id", "org_id", "created_at", "updated_at", "created_by", "updated_by"]
   },
   "query": {
     "join": [
@@ -287,12 +288,13 @@ comment on column public.invoices.status is '{
     "void": {"variant": "default", "icon": "XCircle"}
   }
 }';
-comment on column public.invoices.amount is '{"name": "Amount", "aggregate": "sum"}';
+comment on column public.invoices.amount is '{"name": "Amount", "variant": "money"}';
 comment on column public.invoices.currency is '{"name": "Currency"}';
 comment on column public.invoices.org_id is '{"name": "Organization", "foreignTable": "organisations", "displayColumn": "name"}';
 comment on column public.invoices.issued_on is '{"name": "Issued On"}';
 comment on column public.invoices.due_on is '{"name": "Due On"}';
 comment on column public.invoices.paid_on is '{"name": "Paid On"}';
 comment on column public.invoices.notes is '{"name": "Notes"}';
+comment on column public.invoices.line_items is '{"name": "Line Items", "hidden_in_table": true}';
 
 select supasheet.refresh_metadata();

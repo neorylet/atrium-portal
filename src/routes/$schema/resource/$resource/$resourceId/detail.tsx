@@ -15,6 +15,7 @@ import { AlertCircleIcon, FileXIcon } from "lucide-react"
 
 import { DefaultHeader } from "#/components/layouts/default-header"
 import { addEmbedKeys } from "#/components/resource/detail/add-embed-keys"
+import { InvoiceReceipt } from "#/components/resource/detail/invoice-receipt"
 import { ResourceDetailHeader } from "#/components/resource/detail/resource-detail-header"
 import { ResourceRecordMenu } from "#/components/resource/resource-record-menu"
 import { Button } from "#/components/ui/button"
@@ -106,10 +107,7 @@ export const Route = createFileRoute(
       <>
         <DefaultHeader
           breadcrumbs={[
-            {
-              title: formatTitle(resource),
-              url: `/${schema}/resource/${resource}`,
-            },
+            { title: formatTitle(resource), url: `/${schema}/resource/${resource}` },
             { title: "Detail" },
           ]}
         />
@@ -123,14 +121,7 @@ export const Route = createFileRoute(
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 gap-4 py-4 md:grid-cols-2">
                   {Array.from({ length: 6 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className={
-                        i === 5
-                          ? "flex min-w-0 flex-col gap-1.5 md:col-span-2"
-                          : "flex min-w-0 flex-col gap-1.5"
-                      }
-                    >
+                    <div key={i} className={i === 5 ? "flex min-w-0 flex-col gap-1.5 md:col-span-2" : "flex min-w-0 flex-col gap-1.5"}>
                       <Skeleton className="h-4 w-28" />
                       <Skeleton className="h-4 w-48" />
                     </div>
@@ -151,32 +142,19 @@ export const Route = createFileRoute(
       <>
         <DefaultHeader
           breadcrumbs={[
-            {
-              title: formatTitle(resource),
-              url: `/${schema}/resource/${resource}`,
-            },
+            { title: formatTitle(resource), url: `/${schema}/resource/${resource}` },
             { title: "Detail" },
           ]}
         />
         <div className="flex flex-1 items-center justify-center p-8">
           <Empty>
             <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <AlertCircleIcon />
-              </EmptyMedia>
+              <EmptyMedia variant="icon"><AlertCircleIcon /></EmptyMedia>
               <EmptyTitle>Something went wrong</EmptyTitle>
-              <EmptyDescription>
-                {(error as Error)?.message ?? "An unexpected error occurred."}
-              </EmptyDescription>
+              <EmptyDescription>{(error as Error)?.message ?? "An unexpected error occurred."}</EmptyDescription>
             </EmptyHeader>
             <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() =>
-                  router.navigate({ to: `/${schema}/resource/${resource}` })
-                }
-              >
+              <Button size="sm" variant="outline" onClick={() => router.navigate({ to: `/${schema}/resource/${resource}` })}>
                 Go Back
               </Button>
             </div>
@@ -191,25 +169,17 @@ export const Route = createFileRoute(
       <>
         <DefaultHeader
           breadcrumbs={[
-            {
-              title: formatTitle(resource),
-              url: `/${schema}/resource/${resource}`,
-            },
+            { title: formatTitle(resource), url: `/${schema}/resource/${resource}` },
             { title: "Detail" },
           ]}
         />
         <div className="flex flex-1 items-center justify-center p-8">
           <Empty>
             <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <FileXIcon />
-              </EmptyMedia>
+              <EmptyMedia variant="icon"><FileXIcon /></EmptyMedia>
               <EmptyTitle>Record not found</EmptyTitle>
               <EmptyDescription>
-                <Link
-                  to="/$schema/resource/$resource"
-                  params={{ schema, resource }}
-                >
+                <Link to="/$schema/resource/$resource" params={{ schema, resource }}>
                   Back to {formatTitle(resource)}
                 </Link>
               </EmptyDescription>
@@ -260,10 +230,7 @@ function RouteComponent() {
 
   const tabs = allowedTabs
     ? allTabs.filter(
-        (t) =>
-          t.id === MAIN_TAB ||
-          t.id === "invite" ||
-          allowedTabs.includes(t.id)
+        (t) => t.id === MAIN_TAB || t.id === "invite" || allowedTabs.includes(t.id)
       )
     : allTabs
 
@@ -271,18 +238,11 @@ function RouteComponent() {
     <>
       <DefaultHeader
         breadcrumbs={[
-          {
-            title: resourceDisplayName,
-            url: `/${schema}/resource/${resource}`,
-          },
+          { title: resourceDisplayName, url: `/${schema}/resource/${resource}` },
           { title: "Detail" },
         ]}
       >
-        <ResourceRecordMenu
-          schema={schema}
-          resource={resource}
-          resourceId={resourceId}
-        />
+        <ResourceRecordMenu schema={schema} resource={resource} resourceId={resourceId} />
       </DefaultHeader>
       <div className="flex flex-1 flex-col">
         <div className="mx-auto w-full max-w-5xl px-4 py-4">
@@ -294,6 +254,15 @@ function RouteComponent() {
               fallbackId={resourceId}
             />
           )}
+
+          {/* --- RENDER INVOICE RECEIPT HERE --- */}
+          {record && resource === "invoices" && (
+            <div id="printable-receipt" className="mb-8">
+              <InvoiceReceipt invoiceId={resourceId} record={record} />
+            </div>
+          )}
+          {/* ----------------------------------- */}
+
           {tabs.length > 1 ? (
             <Tabs
               value={currentTab}
@@ -315,7 +284,6 @@ function RouteComponent() {
             </Tabs>
           ) : null}
           
-          {/* RENDER THE INVITE FORM DIRECTLY INSTEAD OF <Outlet /> */}
           {currentTab === "invite" ? (
             <div className="flex flex-col gap-6 max-w-2xl pt-4">
               <div>
