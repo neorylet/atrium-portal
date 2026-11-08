@@ -257,7 +257,7 @@ function RouteComponent() {
 
           {/* --- RENDER INVOICE RECEIPT HERE --- */}
           {record && resource === "invoices" && (
-            <div id="printable-receipt" className="mb-8">
+            <div className="mb-8">
               <InvoiceReceipt invoiceId={resourceId} record={record} />
             </div>
           )}

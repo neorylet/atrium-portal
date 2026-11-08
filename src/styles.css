@@ -174,3 +174,44 @@
 tfoot {
   display: none !important;
 }
+
+/* ==========================================
+   PRINT STYLES (For Invoice PDF Export)
+   ========================================== */
+@media print {
+  /* 1. Set A4 page margins */
+  @page {
+    size: A4 portrait;
+    margin: 15mm;
+  }
+
+  /* 2. Force background colors to print (like the gray table headers) */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* 3. Hide EVERYTHING on the screen */
+  body * {
+    visibility: hidden;
+  }
+
+  /* 4. Make ONLY the receipt and its children visible */
+  #printable-receipt,
+  #printable-receipt * {
+    visibility: visible;
+  }
+
+  /* 5. Position the receipt at the top-left and remove card shadows/borders */
+  #printable-receipt {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    max-width: 100%;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+}
