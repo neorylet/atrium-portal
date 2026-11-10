@@ -1,5 +1,6 @@
+import { useEffect } from "react"
 import { PrinterIcon } from "lucide-react"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Badge } from "#/components/ui/badge"
 import { Button } from "#/components/ui/button"
 import { Card, CardContent } from "#/components/ui/card"
@@ -22,18 +23,28 @@ export function InvoiceReceipt({
   invoiceId,
   record: initialRecord,
 }: InvoiceReceiptProps) {
-  // Fetch the items and org separately to avoid join issues
+  const queryClient = useQueryClient()
+
   const { data: fetchedData, isLoading } = useQuery({
     queryKey: ["invoice-receipt", invoiceId],
-    // 🛑 SAFETY CHECK: Only fetch if invoiceId actually exists
     enabled: !!invoiceId,
     queryFn: async () => {
+      // Fetch the items
       const { data: items, error: itemsError } = await supabase
         .from("invoice_items")
         .select("*")
         .eq("invoice_id", invoiceId)
       
       if (itemsError) throw itemsError
+
+      // Fetch the latest invoice data (to get the updated total amount)
+      const { data: invoice, error: invoiceError } = await supabase
+        .from("invoices")
+        .select("amount")
+        .eq("id", invoiceId)
+        .single()
+        
+      if (invoiceError) throw invoiceError
 
       let orgName = null
       const orgId = initialRecord?.org_id as string
@@ -46,19 +57,45 @@ export function InvoiceReceipt({
         orgName = org?.name
       }
 
-      return { items, orgName }
+      return { items, orgName, updatedAmount: invoice.amount }
     },
     staleTime: 1000 * 60 * 5, 
   })
 
-  // 🛑 SAFETY CHECK: If no ID, don't render the receipt
+  // 🪄 REALTIME MAGIC: Listen for changes and auto-refresh
+  useEffect(() => {
+    if (!invoiceId) return
+
+    const channel = supabase
+      .channel(`invoice-updates-${invoiceId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to inserts, updates, and deletes
+          schema: 'public',
+          table: 'invoice_items',
+          filter: `invoice_id=eq.${invoiceId}`
+        },
+        () => {
+          // Force the receipt to re-fetch when a line item changes
+          queryClient.invalidateQueries({ queryKey: ["invoice-receipt", invoiceId] })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [invoiceId, queryClient])
+
   if (!invoiceId) return null;
 
   const lineItems = fetchedData?.items || (initialRecord?.invoice_items as InvoiceItem[]) || []
   
   const invoiceNumber = initialRecord?.invoice_number as string
   const status = initialRecord?.status as string
-  const amount = initialRecord?.amount as number
+  // Use the live updated amount from the query, fallback to the initial record
+  const amount = (fetchedData?.updatedAmount ?? initialRecord?.amount) as number 
   const currency = (initialRecord?.currency as string) || "USD"
   const issuedOn = initialRecord?.issued_on as string
   const dueOn = initialRecord?.due_on as string | null
