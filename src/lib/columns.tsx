@@ -283,6 +283,14 @@ export function getColumnMetadata(
     }
   }
 
+  // Force currency_code variant for currency columns (overrides USER-DEFINED enum handling)
+  if (columnSchema.name === "currency" || columnSchema.name === "currency_code") {
+    return {
+      ...baseOptions,
+      variant: "currency_code",
+    }
+  }
+
   if (columnSchema.data_type === "USER-DEFINED") {
     return {
       ...baseOptions,

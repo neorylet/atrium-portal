@@ -28,7 +28,7 @@ export function CurrencyComboboxField({ columnMetadata }: FieldProps) {
   const [open, setOpen] = useState(false)
 
   const currentValue = (field.state.value as string | null | undefined) ?? ""
-  const selectedCurrency = getCurrencyByCode(currentValue)
+  const selectedCurrency = getCurrencyByCode(String(currentValue))
 
   const placeholder =
     columnMetadata.placeholder ??

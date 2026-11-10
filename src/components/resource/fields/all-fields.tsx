@@ -27,10 +27,11 @@ export function AllFields({ columnMetadata, form }: FieldProps) {
     return <FileUploadField columnMetadata={columnMetadata} form={form} />
   }
 
+  const fieldName = columnMetadata.name?.toLowerCase()
   if (
     columnMetadata.variant === "currency_code" ||
-    columnMetadata.name === "currency_code" ||
-    columnMetadata.name === "currency"
+    fieldName === "currency_code" ||
+    fieldName === "currency"
   ) {
     return <CurrencyComboboxField columnMetadata={columnMetadata} form={form} />
   }
