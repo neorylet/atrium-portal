@@ -12,7 +12,9 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "#/components/ui/sheet"
+import { useAuthUser } from "#/hooks/use-user"
 import { useIsMobile } from "#/hooks/use-mobile"
+import { useRealtimeSubscription } from "#/hooks/use-realtime-subscription"
 import { unreadNotificationsCountQueryOptions } from "#/lib/supabase/data/core"
 import { cn } from "#/lib/utils"
 
@@ -26,10 +28,21 @@ export function NotificationsBell({ className }: { className?: string }) {
   const [open, setOpen] = useState(false)
   const isMobile = useIsMobile()
   const side = isMobile ? "bottom" : "right"
+  const currentUser = useAuthUser()
 
   const { data: unreadCount = 0 } = useQuery(
     unreadNotificationsCountQueryOptions
   )
+
+  // Real-time subscription for notifications
+  useRealtimeSubscription({
+    table: "user_notifications",
+    schema: "supasheet",
+    event: "*",
+    filter: currentUser ? `user_id=eq.${currentUser.id}` : undefined,
+    queryKey: ["supasheet", "notifications"],
+    enabled: !!currentUser,
+  })
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
