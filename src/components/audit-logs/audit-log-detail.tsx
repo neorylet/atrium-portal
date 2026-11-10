@@ -83,18 +83,23 @@ export function AuditLogDetail({ data }: { data: AuditLog }) {
               if (oldVal === newVal) return null;
 
               return (
-                <div key={field} className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 p-3 rounded-lg bg-muted/50 border">
-                  <div className="w-32 shrink-0">
+                <div key={field} className="flex flex-col gap-2 p-3 rounded-lg bg-muted/50 border">
+                  <div className="flex items-center gap-2">
                     <p className="font-mono text-sm font-medium">{field}</p>
                   </div>
-                  <div className="flex flex-1 items-center gap-3 text-sm overflow-hidden">
-                    <span className="line-through text-red-500/70 truncate max-w-[200px]">
-                      {oldVal === null || oldVal === undefined || oldVal === "" ? "empty" : String(oldVal)}
-                    </span>
-                    <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    <span className="text-green-600 font-medium truncate max-w-[200px]">
-                      {newVal === null || newVal === undefined || newVal === "" ? "empty" : String(newVal)}
-                    </span>
+                  <div className="flex flex-col gap-2 text-sm pl-4">
+                    <div className="flex items-start gap-2">
+                      <ArrowRight className="h-4 w-4 shrink-0 text-red-500/70 mt-0.5" />
+                      <span className="line-through text-red-500/70 break-words whitespace-pre-wrap">
+                        {oldVal === null || oldVal === undefined || oldVal === "" ? "empty" : String(oldVal)}
+                      </span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <ArrowRight className="h-4 w-4 shrink-0 text-green-600 mt-0.5" />
+                      <span className="text-green-600 font-medium break-words whitespace-pre-wrap">
+                        {newVal === null || newVal === undefined || newVal === "" ? "empty" : String(newVal)}
+                      </span>
+                    </div>
                   </div>
                 </div>
               )

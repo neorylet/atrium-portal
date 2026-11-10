@@ -1,3 +1,4 @@
+import { useEffect } from "react"
 import { useDeferredValue, useMemo } from "react"
 
 import { useSuspenseQuery } from "@tanstack/react-query"
@@ -6,6 +7,7 @@ import { createFileRoute } from "@tanstack/react-router"
 import { AuditLogTable } from "#/components/audit-logs/audit-logs-table"
 import { DataTableSkeleton } from "#/components/data-table/data-table-skeleton"
 import { DefaultHeader } from "#/components/layouts/default-header"
+import { supabase } from "#/lib/supabase/client"
 import { getFilterVariants } from "#/lib/columns"
 import { getTableQuery, validateTableSearch } from "#/lib/data-table-search"
 import { pageTitle } from "#/lib/page-title"
@@ -54,6 +56,7 @@ function PendingComponent() {
 function RouteComponent() {
   const search = Route.useSearch()
   const { columnsSchema } = Route.useLoaderData()
+  const queryClient = Route.useRouteContext().queryClient
 
   const liveTableQuery = useMemo(
     () => getTableQuery(search, getFilterVariants(null, columnsSchema)),
@@ -63,6 +66,30 @@ function RouteComponent() {
   const { data } = useSuspenseQuery(auditLogsQueryOptions(tableQuery))
 
   const pageCount = Math.ceil((data?.count ?? 0) / tableQuery.perPage)
+
+  // Real-time subscription for audit logs
+  useEffect(() => {
+    const channel = supabase
+      .channel("audit_logs_changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "audit_logs",
+        },
+        () => {
+          queryClient.invalidateQueries({
+            queryKey: ["supasheet", "audit_logs"],
+          })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [queryClient])
 
   return (
     <>
