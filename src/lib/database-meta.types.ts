@@ -421,6 +421,8 @@ export type ColumnMetadata = {
   placeholder?: string
   icon?: IconName
   aggregate?: AggregateFunction
+  hidden_in_form?: boolean
+  hidden_in_table?: boolean
 }
 
 export type EnumColumnMetadata = ColumnMetadata & {

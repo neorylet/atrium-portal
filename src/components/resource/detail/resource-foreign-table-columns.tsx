@@ -8,6 +8,7 @@ import type {
   DataTableRow,
 } from "#/lib/data-table-types"
 import type {
+  ColumnMetadata,
   ColumnSchema,
   ResourceDataSchema,
   ResourceSchema,
@@ -35,27 +36,42 @@ export function getResourceForeignTableColumns({
   const primaryKeyNames = primaryKeys.map((k) => k.name)
   const hasPrimaryKeys = primaryKeys.length > 0
 
-  // Filter out metadata fields (id, org_id, project_id, etc.)
+  // Filter out metadata fields (id, org_id, created_at, etc.)
+  // Note: This does NOT filter out hidden_in_form columns - those are for forms only
   const metaFields = getMetaFields(resourceSchema)
+
+  // Build a map of columns with hidden_in_table flag
+  const columnHiddenInTable = new Map<string, boolean>()
+  for (const col of columnsSchema ?? []) {
+    const meta = parseComment<ColumnMetadata>(col.comment, {})
+    if (meta.hidden_in_table) {
+      columnHiddenInTable.set(col.name, true)
+    }
+  }
 
   // Parse table comment to get sections ordering
   const tableMeta = parseComment<TableMetadata>(resourceSchema.comment, {})
   const sections = tableMeta.fields?.sections ?? []
 
-  // Build a map of column name -> order index based on sections
-  const columnOrderMap = new Map<string, number>()
-  let orderIndex = 0
+  // Build a flat ordered list of all column names from sections
+  const orderedColumnNames: string[] = []
   for (const section of sections) {
     for (const fieldName of section.fields) {
-      if (!columnOrderMap.has(fieldName)) {
-        columnOrderMap.set(fieldName, orderIndex++)
+      if (!orderedColumnNames.includes(fieldName)) {
+        orderedColumnNames.push(fieldName)
       }
     }
   }
 
-  // Filter and sort columns
+  // Build a map of column name -> order index
+  const columnOrderMap = new Map<string, number>()
+  orderedColumnNames.forEach((name, index) => {
+    columnOrderMap.set(name, index)
+  })
+
+  // Filter out metadata fields and hidden_in_table columns, then sort by sections order
   const sortedColumns = (columnsSchema ?? [])
-    .filter((c) => !metaFields.includes(c.name))
+    .filter((c) => !metaFields.includes(c.name) && !columnHiddenInTable.get(c.name))
     .sort((a, b) => {
       const orderA = columnOrderMap.get(a.name)
       const orderB = columnOrderMap.get(b.name)

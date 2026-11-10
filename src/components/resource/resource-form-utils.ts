@@ -1,6 +1,7 @@
 import { getColumnMetadata } from "#/lib/columns"
 import type {
   ColumnSchema,
+  ColumnMetadata,
   EnumColumnMetadata,
   FieldBehavior,
   FieldCondition,
@@ -23,6 +24,11 @@ export function isSkippedForUpdate(
 export function isSkippedForCreate(col: ColumnSchema): boolean {
   if (col.is_identity ?? false) return true
   if (col.is_generated ?? false) return true
+  
+  // Check for hidden_in_form flag in column comment
+  const meta = JSON.parse(col.comment ?? "{}") as ColumnMetadata
+  if (meta.hidden_in_form) return true
+  
   return false
 }
 

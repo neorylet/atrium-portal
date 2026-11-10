@@ -29,7 +29,8 @@ export function AllFields({ columnMetadata, form }: FieldProps) {
 
   if (
     columnMetadata.variant === "currency_code" ||
-    columnMetadata.name === "currency_code"
+    columnMetadata.name === "currency_code" ||
+    columnMetadata.name === "currency"
   ) {
     return <CurrencyComboboxField columnMetadata={columnMetadata} form={form} />
   }

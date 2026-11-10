@@ -159,9 +159,6 @@ export function ForeignDataCombobox({
                   <ItemTitle className="whitespace-nowrap">
                     {String(record[displayColumn] ?? "")}
                   </ItemTitle>
-                  <ItemDescription>
-                    {String(record[relationship.target_column_name] ?? "")}
-                  </ItemDescription>
                 </ItemContent>
               </Item>
             </ComboboxItem>
