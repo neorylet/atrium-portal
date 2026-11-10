@@ -1,12 +1,12 @@
-import { useEffect } from "react"
 import { PrinterIcon } from "lucide-react"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import { Badge } from "#/components/ui/badge"
 import { Button } from "#/components/ui/button"
 import { Card, CardContent } from "#/components/ui/card"
 import { Skeleton } from "#/components/ui/skeleton"
 import { formatDate } from "#/lib/format"
-import { supabase } from "#/lib/supabase/client" 
+import { supabase } from "#/lib/supabase/client"
+import { useRealtimeSubscription } from "#/hooks/use-realtime-subscription" 
 
 interface InvoiceItem {
   description: string
@@ -23,8 +23,6 @@ export function InvoiceReceipt({
   invoiceId,
   record: initialRecord,
 }: InvoiceReceiptProps) {
-  const queryClient = useQueryClient()
-
   const { data: fetchedData, isLoading } = useQuery({
     queryKey: ["invoice-receipt", invoiceId],
     enabled: !!invoiceId,
@@ -34,7 +32,7 @@ export function InvoiceReceipt({
         .from("invoice_items")
         .select("*")
         .eq("invoice_id", invoiceId)
-      
+
       if (itemsError) throw itemsError
 
       // Fetch the latest invoice data (to get the updated total amount)
@@ -43,7 +41,7 @@ export function InvoiceReceipt({
         .select("amount")
         .eq("id", invoiceId)
         .single()
-        
+
       if (invoiceError) throw invoiceError
 
       let orgName = null
@@ -59,34 +57,18 @@ export function InvoiceReceipt({
 
       return { items, orgName, updatedAmount: invoice.amount }
     },
-    staleTime: 1000 * 60 * 5, 
+    staleTime: 1000 * 60 * 5,
   })
 
-  // 🪄 REALTIME MAGIC: Listen for changes and auto-refresh
-  useEffect(() => {
-    if (!invoiceId) return
-
-    const channel = supabase
-      .channel(`invoice-updates-${invoiceId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*', // Listen to inserts, updates, and deletes
-          schema: 'public',
-          table: 'invoice_items',
-          filter: `invoice_id=eq.${invoiceId}`
-        },
-        () => {
-          // Force the receipt to re-fetch when a line item changes
-          queryClient.invalidateQueries({ queryKey: ["invoice-receipt", invoiceId] })
-        }
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [invoiceId, queryClient])
+  // Real-time subscription for invoice items
+  useRealtimeSubscription({
+    table: "invoice_items",
+    schema: "public",
+    event: "*",
+    filter: `invoice_id=eq.${invoiceId}`,
+    queryKey: ["invoice-receipt", invoiceId],
+    enabled: !!invoiceId,
+  })
 
   if (!invoiceId) return null;
 
