@@ -10,10 +10,10 @@ import { ResourceComments } from "#/components/resource/comments/resource-commen
 import { ResourceRecordMenu } from "#/components/resource/resource-record-menu"
 import { Skeleton } from "#/components/ui/skeleton"
 import { hasResourcePermission } from "#/hooks/use-permissions"
-import { isTableSchema } from "#/lib/database-meta.types"
+import { isTableSchema, parseComment, type TableMetadata } from "#/lib/database-meta.types"
 import { formatTitle } from "#/lib/format"
 import { pageTitle } from "#/lib/page-title"
-import { resourceCommentsQueryOptions } from "#/lib/supabase/data/resource"
+import { resourceCommentsQueryOptions, singleResourceDataQueryOptions } from "#/lib/supabase/data/resource"
 
 export const Route = createFileRoute(
   "/$schema/resource/$resource/$resourceId/comment"
@@ -32,6 +32,22 @@ export const Route = createFileRoute(
     return { tableSchema }
   },
   loader: async ({ context, params: { schema, resource, resourceId } }) => {
+    const tableSchema = isTableSchema(context.resourceSchema)
+      ? context.resourceSchema
+      : null
+
+    // Fetch the record to get its title for the header
+    if (tableSchema) {
+      const primaryKeys = tableSchema.primary_keys ?? []
+      const pk = Object.fromEntries(
+        primaryKeys.map((k) => [k.name, resourceId])
+      )
+      const tableMeta = parseComment<TableMetadata>(tableSchema.comment, {})
+      await context.queryClient.ensureQueryData(
+        singleResourceDataQueryOptions(schema, resource, pk, tableMeta.query)
+      )
+    }
+
     context.queryClient.query({
       ...resourceCommentsQueryOptions(schema, resource, resourceId),
       staleTime: "static",
@@ -106,6 +122,22 @@ function CommentsBody() {
 function RouteComponent() {
   const { schema, resource, resourceId } = Route.useParams()
   const { tableSchema } = Route.useRouteContext()
+
+  // Fetch the record to get its title
+  const primaryKeys = tableSchema?.primary_keys ?? []
+  const pk = Object.fromEntries(primaryKeys.map((k) => [k.name, resourceId]))
+  const tableMeta = parseComment<TableMetadata>(tableSchema?.comment ?? "", {})
+  const { data: record } = useSuspenseQuery(
+    singleResourceDataQueryOptions(schema, resource, pk, tableMeta.query)
+  )
+
+  // Get the title column from metadata
+  const titleColumn = tableMeta.detail?.header?.title ?? "title"
+  const recordTitle =
+    record && typeof record === "object" && !("message" in record)
+      ? String((record as Record<string, unknown>)[titleColumn] ?? "")
+      : undefined
+
   const resourceTitle = tableSchema?.comment
     ? (() => {
         try {
@@ -126,7 +158,7 @@ function RouteComponent() {
             url: `/${schema}/resource/${resource}/table`,
           },
           {
-            title: resourceId.slice(0, 8) + "…",
+            title: recordTitle ?? resourceId.slice(0, 8) + "…",
             url: `/${schema}/resource/${resource}/${resourceId}/detail`,
           },
           { title: "Comments" },
@@ -144,7 +176,10 @@ function RouteComponent() {
             <div className="mb-4 flex items-center gap-2">
               <MessageSquareIcon className="h-4 w-4 text-muted-foreground" />
               <h2 className="text-sm font-medium text-muted-foreground">
-                {`Comments on record ${resourceId.slice(0, 8)}…`}
+                Comments on{" "}
+                <span className="text-foreground">
+                  {recordTitle ?? resourceId.slice(0, 8) + "…"}
+                </span>
               </h2>
             </div>
             <Suspense fallback={null}>
