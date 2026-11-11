@@ -1,4 +1,4 @@
-import { Suspense, useState } from "react"
+import { Suspense, useMemo, useState } from "react"
 
 import { useQuery } from "@tanstack/react-query"
 
@@ -29,6 +29,7 @@ export function NotificationsBell({ className }: { className?: string }) {
   const isMobile = useIsMobile()
   const side = isMobile ? "bottom" : "right"
   const currentUser = useAuthUser()
+  const notificationsKey = useMemo(() => ["supasheet", "notifications"], [])
 
   const { data: unreadCount = 0 } = useQuery(
     unreadNotificationsCountQueryOptions
@@ -40,7 +41,7 @@ export function NotificationsBell({ className }: { className?: string }) {
     schema: "supasheet",
     event: "*",
     filter: currentUser ? `user_id=eq.${currentUser.id}` : undefined,
-    queryKey: ["supasheet", "notifications"],
+    queryKey: notificationsKey,
     enabled: !!currentUser,
   })
 

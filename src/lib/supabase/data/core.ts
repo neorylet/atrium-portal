@@ -189,12 +189,18 @@ export type UserNotificationRow = {
 export const notificationsQueryOptions = queryOptions({
   queryKey: ["supasheet", "notifications", "me"] as const,
   queryFn: async (): Promise<UserNotificationRow[]> => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) return []
+
     const { data, error } = await supabase
       .schema("supasheet")
       .from("user_notifications" as never)
       .select(
         "id, notification_id, user_id, read_at, archived_at, created_at, notification:notification_id ( id, type, title, body, link, metadata, created_by, created_at )"
       )
+      .eq("user_id", user.id)
       .is("archived_at", null)
       .order("created_at", { ascending: false })
 

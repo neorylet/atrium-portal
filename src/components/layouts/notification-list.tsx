@@ -174,7 +174,8 @@ function NotificationItem({
   onDelete: () => void
 }) {
   const isUnread = !item.read_at
-  const { notification } = item
+  const notification = item.notification
+  if (!notification) return null
   const hasLink = !!notification.link
 
   return (
