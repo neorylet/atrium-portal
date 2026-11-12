@@ -253,6 +253,9 @@ function RouteComponent() {
 
   const canInsert = useHasPermission({ schema, resource, action: "insert" })
 
+  const galleryFilterPresets = meta.filter_presets?.filter(p => p.id === 'status') ?? []
+  const activePresetId = search.filterPreset ?? "__all__"
+
   return (
     <>
       <DefaultHeader
@@ -271,8 +274,8 @@ function RouteComponent() {
           currentViewId={galleryView.id}
         />
         <ResourceViewFilterPresets
-          filterPresets={meta.filter_presets ?? []}
-          activePresetId={search.filterPreset ?? "__all__"}
+          filterPresets={galleryFilterPresets}
+          activePresetId={activePresetId}
           onFilterChange={(presetId) => {
             navigate({
               to: ".",

@@ -60,6 +60,15 @@ export const Route = createFileRoute("/$schema/resource/$resource/")({
     }
   },
   loader: async ({ context, params: { schema, resource } }) => {
+    const meta = JSON.parse(
+      context.resourceSchema?.comment ?? "{}"
+    ) as TableMetadata
+
+    // If primary_view is set, redirect directly to it
+    if (meta.primary_view) {
+      throw redirect(resolvePrimaryViewTarget(schema, resource, meta))
+    }
+
     const [widgets, charts, forms] = await Promise.all([
       context.queryClient.query({
         ...dashboardWidgetsQueryOptions(schema, resource),
@@ -75,9 +84,6 @@ export const Route = createFileRoute("/$schema/resource/$resource/")({
       }),
     ])
 
-    const meta = JSON.parse(
-      context.resourceSchema?.comment ?? "{}"
-    ) as TableMetadata
     const presets = meta.filter_presets ?? []
     const urls = meta.links ?? []
     if ([...presets, ...urls, ...widgets, ...charts, ...forms].length === 0) {

@@ -278,6 +278,7 @@ function RouteComponent() {
 
   const canInsert = useHasPermission({ schema, resource, action: "insert" })
 
+  const kanbanFilterPresets = meta.filter_presets?.filter(p => p.id === 'project_id') ?? []
   const activePresetId = search.filterPreset ?? "__all__"
 
   return (
@@ -298,7 +299,7 @@ function RouteComponent() {
           currentViewId={kanbanView.id}
         />
         <ResourceViewFilterPresets
-          filterPresets={meta.filter_presets ?? []}
+          filterPresets={kanbanFilterPresets}
           activePresetId={activePresetId}
           onFilterChange={(presetId) => {
             navigate({
