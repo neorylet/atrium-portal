@@ -35,7 +35,9 @@ export function ResourceFileDisplay({ value }: { value: FileObject[] | string | 
         window.open(data.signedUrl, "_blank")
       }
     } catch (err) {
-      toast.error("Failed to generate download link")
+      console.error("Storage Error:", err)
+      const errorMessage = err instanceof Error ? err.message : "Failed to generate download link"
+      toast.error(errorMessage)
     } finally {
       setDownloading(false)
     }

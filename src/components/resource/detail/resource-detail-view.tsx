@@ -105,7 +105,7 @@ export function ResourceDetailView({
   const detailColumns =
     columnsSchema?.filter((column) => {
       const name = column.name
-      if (["id", "org_id", "project_id"].includes(name)) return false
+      if (["id"].includes(name)) return false
       if (isClient && isDeliverables && name === "client_feedback") return false
       if (name === "created_by" || name === "updated_by") return true
       return !getMetaFields(resourceSchema).includes(name)
@@ -155,14 +155,19 @@ export function ResourceDetailView({
                       value={value as string}
                       disabled
                     />
-                  ) : (columnMetadata.variant === "file" || column.name === "file_path" || column.name === "logo_url") ? (
+                  ) : (columnMetadata.variant === "file" || column.name.includes("file") || column.name.includes("logo") || (typeof value === "string" && value.includes(".") && value.length > 5)) ? (
                     <ResourceFileDisplay value={value as any} />
                   ) : columnMetadata.variant === "avatar" ? (
                     <ResourceAvatarDisplay
                       value={(value as FileObject | null) ?? null}
                     />
                   ) : (
-                    <AllCells columnMetadata={columnMetadata} value={value} record={singleResourceData} />
+                    (() => {
+                      if (column.name.includes("file") || column.name.includes("logo")) {
+                        console.log("File column debug:", { columnName: column.name, columnVariant: columnMetadata.variant, valueType: typeof value, value })
+                      }
+                      return <AllCells columnMetadata={columnMetadata} value={value} record={singleResourceData} />
+                    })()
                   )
                 ) : (
                   <div className="text-muted">N/A</div>

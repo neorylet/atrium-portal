@@ -22,7 +22,13 @@ export function FileUploadField({ columnMetadata }: FieldProps) {
     try {
       const fileExt = file.name.split(".").pop()
       const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`
-      const filePath = `${fileName}`
+
+      // Get org_id from current user to create folder structure
+      const { data: { user } } = await supabase.auth.getUser()
+      const orgId = user?.app_metadata?.org_id as string | undefined
+
+      // Upload to org_id/filename if org_id exists, otherwise just filename
+      const filePath = orgId ? `${orgId}/${fileName}` : fileName
 
       const { error: uploadError } = await supabase.storage
         .from(bucket)

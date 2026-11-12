@@ -71,10 +71,12 @@ export const Route = createFileRoute(
     if (primaryKeys?.length === 0) throw notFound()
     const pkName = primaryKeys[0].name
 
+    const tableMeta = JSON.parse(context.tableSchema.comment ?? "{}") as TableMetadata
+
     context.queryClient.query({
       ...singleResourceDataQueryOptions(schema, resource, {
         [pkName]: resourceId,
-      }),
+      }, tableMeta.query),
       staleTime: "static",
     })
     context.queryClient.query({
@@ -82,9 +84,7 @@ export const Route = createFileRoute(
       staleTime: "static",
     })
 
-    const metaJoins = (
-      JSON.parse(context.tableSchema.comment ?? "{}") as TableMetadata
-    ).query?.join
+    const metaJoins = tableMeta.query?.join
     const embeddedTables = addEmbedKeys(
       schema,
       resource,
@@ -198,11 +198,11 @@ function RouteComponent() {
   const location = useLocation()
   const navigate = useNavigate()
 
-  const { data: record } = useSuspenseQuery(
-    singleResourceDataQueryOptions(schema, resource, { [pkName]: resourceId })
-  )
-
   const tableMeta = JSON.parse(tableSchema.comment ?? "{}") as TableMetadata
+
+  const { data: record } = useSuspenseQuery(
+    singleResourceDataQueryOptions(schema, resource, { [pkName]: resourceId }, tableMeta.query)
+  )
   const resourceDisplayName = tableMeta.name ?? formatTitle(resource)
   const allowedTabs = tableMeta.detail?.tabs
 

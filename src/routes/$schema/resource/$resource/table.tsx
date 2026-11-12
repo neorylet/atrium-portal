@@ -29,6 +29,7 @@ import {
   hasResourcePermission,
   useHasPermission,
 } from "#/hooks/use-permissions"
+import { useRealtimeSubscription } from "#/hooks/use-realtime-subscription"
 import { getFilterVariants } from "#/lib/columns"
 import { getTableQuery, validateTableSearch } from "#/lib/data-table-search"
 import type { TableMetadata } from "#/lib/database-meta.types"
@@ -194,6 +195,14 @@ function RouteComponent() {
   )
 
   const pageCount = Math.ceil((resourceData?.count ?? 0) / tableQuery.perPage)
+
+  // Real-time subscription for table updates
+  useRealtimeSubscription({
+    table: resource,
+    schema: schema,
+    event: "*",
+    queryKey: ["supasheet", "resource-data", schema, resource],
+  })
 
   return (
     <>

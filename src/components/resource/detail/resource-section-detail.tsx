@@ -1,4 +1,5 @@
 import { ChevronDownIcon } from "lucide-react"
+import { useQuery } from "@tanstack/react-query"
 
 import { Editor } from "#/components/editor/editor-md"
 import {
@@ -21,6 +22,7 @@ import type {
   TableSchema,
 } from "#/lib/database-meta.types"
 import { formatTitle } from "#/lib/format"
+import { supabase } from "#/lib/supabase/client"
 import type { FileObject } from "#/types/fields"
 
 import { AllCells } from "../cells/all-cells"
@@ -37,6 +39,26 @@ type Props = {
   colByName: Map<string, ColumnSchema>
   tableSchema: TableSchema | null
   record: Record<string, unknown>
+}
+
+// 🚀 NEW COMPONENT: Guaranteed to fetch the name instead of failing on joins
+function ForeignKeyNameFetcher({ table, id }: { table: string; id: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["fk-name", table, id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from(table as never)
+        .select("name")
+        .eq("id", id)
+        .maybeSingle()
+      if (error) throw error
+      return data as { name: string } | null
+    },
+    staleTime: 1000 * 60 * 5,
+  })
+
+  if (isLoading) return <span className="text-sm text-muted-foreground">Loading...</span>
+  return <span className="text-sm">{data?.name || id}</span>
 }
 
 export function ResourceSectionDetail({
@@ -66,6 +88,8 @@ export function ResourceSectionDetail({
         const columnMetadata = getColumnMetadata(tableSchema, column)
         const span = getColumnFieldSpan(column, tableSchema)
 
+        const isFile = column.name === "file_path" || column.name === "logo_url" || columnMetadata.variant === "file" || (typeof value === "string" && /\.(png|jpg|jpeg|gif|pdf|docx|csv|xlsx|zip)$/i.test(value))
+
         return (
           <div
             key={column.id}
@@ -86,14 +110,18 @@ export function ResourceSectionDetail({
                     value={value as string}
                     disabled
                   />
-                ) : columnMetadata.variant === "file" ? (
-                  <ResourceFileDisplay value={value as FileObject[]} />
+                ) : isFile ? (
+                  <ResourceFileDisplay value={value as any} />
                 ) : columnMetadata.variant === "avatar" ? (
                   <ResourceAvatarDisplay
                     value={(value as FileObject | null) ?? null}
                   />
+                ) : column.name === "project_id" ? (
+                  <ForeignKeyNameFetcher table="projects" id={value as string} />
+                ) : column.name === "org_id" ? (
+                  <ForeignKeyNameFetcher table="organisations" id={value as string} />
                 ) : (
-                  <AllCells columnMetadata={columnMetadata} value={value} />
+                  <AllCells columnMetadata={columnMetadata} value={value} record={record} />
                 )
               ) : (
                 <div className="text-muted">N/A</div>

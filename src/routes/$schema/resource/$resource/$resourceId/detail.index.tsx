@@ -39,7 +39,7 @@ export const Route = createFileRoute(
 function RouteComponent() {
   const { schema, resource, resourceId } = Route.useParams()
   const { pkName, primaryKeys } = parentRoute.useLoaderData()
-  const { updateColumnsSchema } = Route.useLoaderData()
+  const { updateColumnsSchema } = Route.useLoaderData() ?? {}
   const { tableSchema, columnsSchema } = Route.useRouteContext()
 
   const pk = { [pkName]: resourceId }

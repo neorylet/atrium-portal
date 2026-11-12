@@ -15,8 +15,9 @@ function buildJoinsSelect(resource: string, join: JoinClause[] | undefined) {
   return (
     join
       ?.map((j) => {
+        const alias = j.alias || j.table
         const target = j.table === resource ? j.on : `${j.table}!${j.on}`
-        return `,${j.alias ? `${j.alias}:` : ""}${target}(${j.columns.join(",")})`
+        return `,${alias}:${target}(${j.columns.join(",")})`
       })
       .join("") ?? ""
   )
