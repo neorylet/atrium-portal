@@ -1,17 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 
-import { Trash2Icon } from "lucide-react"
+import { ArchiveIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { ResourceRowActions } from "#/components/resource/resource-row-actions"
 import { ConfirmDeleteDialog } from "#/components/shared/confirm-delete-dialog"
-import { Badge } from "#/components/ui/badge"
 import { Button } from "#/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "#/components/ui/select"
 import { useConfirmAction } from "#/hooks/use-confirm-action"
 import { useHasPermission } from "#/hooks/use-permissions"
-import { getColumnMetadata } from "#/lib/columns"
 import type {
   ColumnSchema,
   ResourceSchema,
@@ -23,8 +20,6 @@ import {
   resourceActionsQueryOptions,
   updateResourceMutationOptions,
 } from "#/lib/supabase/data/resource"
-
-import { AllCells } from "../cells/all-cells"
 
 type Props = {
   resourceSchema: ResourceSchema
@@ -48,10 +43,9 @@ export function ResourceDetailHeader({
     ? (resourceSchema.primary_keys ?? [])
     : []
 
+  // Only show archive/delete if they have update/delete permissions
   const hasDeletePermission = useHasPermission({ schema, resource, action: "delete" })
-  const canDelete = primaryKeys.length > 0 && hasDeletePermission
-
-  const canUpdate = useHasPermission({ schema, resource, action: "update" })
+  const canModify = primaryKeys.length > 0 && hasDeletePermission
 
   const { mutateAsync: deleteRow } = useMutation(
     deleteResourceMutationOptions(schema, resource)
@@ -65,32 +59,28 @@ export function ResourceDetailHeader({
     primaryKeys.map((key) => [key.name, record[key.name]])
   )
 
-  const handleStatusChange = async (newStatus: string) => {
+  const archiveConfirm = useConfirmAction<true>(async () => {
     try {
-      await updateRow({ pk, data: { status: newStatus } })
-      queryClient.invalidateQueries({
-        queryKey: ["supasheet", "resource-data", schema, resource],
-      })
-      toast.success("Status updated")
-    } catch (err) {
-      toast.error("Failed to update status")
-    }
-  }
-
-  const deleteConfirm = useConfirmAction<true>(async () => {
-    try {
-      await deleteRow(pk)
-      queryClient.invalidateQueries({
-        queryKey: ["supasheet", "resource-data", schema, resource],
-      })
-      toast.success("Record deleted")
-      navigate({
-        to: "/$schema/resource/$resource",
-        params: { schema, resource },
-      })
+      // If the table has an archived status, use that instead of deleting
+      const hasArchivedStatus = ["projects", "deliverables"].includes(resource)
+      
+      if (hasArchivedStatus) {
+        await updateRow({ pk, data: { status: "archived" } })
+        toast.success("Record archived successfully")
+        queryClient.invalidateQueries({
+          queryKey: ["supasheet", "resource-data", schema, resource],
+        })
+      } else {
+        await deleteRow(pk)
+        toast.success("Record deleted")
+        navigate({
+          to: "/$schema/resource/$resource",
+          params: { schema, resource },
+        })
+      }
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Failed to delete record"
+        err instanceof Error ? err.message : "Failed to archive/delete record"
       )
     }
   })
@@ -99,22 +89,10 @@ export function ResourceDetailHeader({
     JSON.parse(resourceSchema.comment ?? "{}") as TableMetadata
   ).detail?.header
 
-  const colByName = new Map(columnsSchema.map((c) => [c.name ?? c.id ?? "", c]))
-
   const titleKey = detailMeta?.title || "title"
   const titleValue = record[titleKey] || record.title || record.name
   const hasTitle = titleValue != null && titleValue !== ""
   const heading = hasTitle ? String(titleValue) : fallbackId
-
-  // Extract status for the dropdown
-  const statusCol = colByName.get("status")
-  const currentStatus = record.status as string | null
-  const statusMeta = statusCol ? getColumnMetadata(resourceSchema, statusCol) : null
-  
-  // FALLBACK: If metadata fails, hardcode the project statuses
-  const statusValues = statusMeta?.values 
-    ? Object.keys(statusMeta.values) 
-    : ["planning", "active", "on_hold", "completed", "archived"]
 
   const { data: actions = [] } = useQuery(
     resourceActionsQueryOptions(
@@ -123,29 +101,13 @@ export function ResourceDetailHeader({
     )
   )
 
+  const hasArchivedStatus = ["projects", "deliverables"].includes(resource)
+
   return (
     <div className="mb-4 flex flex-col gap-4">
       <div className="flex items-center justify-between gap-4">
         <div className="min-w-0 space-y-2">
           <h1 className="truncate text-xl font-bold tracking-tight">{heading}</h1>
-          
-          {/* STATUS DROPDOWN */}
-          {statusCol && canUpdate && (
-            <div className="flex items-center gap-2">
-              <Select value={currentStatus || ""} onValueChange={handleStatusChange}>
-                <SelectTrigger className="h-7 w-[140px] text-xs capitalize">
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {statusValues.map((val) => (
-                    <SelectItem key={val} value={val} className="text-xs capitalize">
-                      {val.replace(/_/g, " ")}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -157,26 +119,28 @@ export function ResourceDetailHeader({
             columnsSchema={columnsSchema}
             variant="menu"
           />
-          {canDelete && (
+          {canModify && (
             <Button
               size="sm"
-              variant="destructive"
-              className="px-2 sm:px-2.5"
-              onClick={() => deleteConfirm.request(true)}
+              variant="outline"
+              className="px-2 sm:px-2.5 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+              onClick={() => archiveConfirm.request(true)}
             >
-              <Trash2Icon />
-              <span className="hidden sm:inline">Delete</span>
+              <ArchiveIcon className="mr-1.5 size-4" />
+              <span className="hidden sm:inline">
+                {hasArchivedStatus ? "Archive" : "Delete"}
+              </span>
             </Button>
           )}
         </div>
       </div>
 
       <ConfirmDeleteDialog
-        open={deleteConfirm.open}
-        onOpenChange={(open) => !open && deleteConfirm.cancel()}
-        onConfirm={deleteConfirm.confirm}
-        title="Delete record?"
-        pending={deleteConfirm.pending}
+        open={archiveConfirm.open}
+        onOpenChange={(open) => !open && archiveConfirm.cancel()}
+        onConfirm={archiveConfirm.confirm}
+        title={hasArchivedStatus ? "Archive record?" : "Delete record?"}
+        pending={archiveConfirm.pending}
       />
     </div>
   )

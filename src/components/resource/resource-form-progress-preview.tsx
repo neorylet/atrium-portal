@@ -22,6 +22,7 @@ export function ProgressFieldPreview({
           column={column}
           value={value ?? null}
           enumMeta={enumMeta}
+          onChange={(newValue) => form.setFieldValue(column.name, newValue)}
         />
       )}
     </form.Subscribe>

@@ -2,6 +2,13 @@ import type { LucideIcon } from "lucide-react"
 import * as LucideIcons from "lucide-react"
 
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "#/components/ui/select"
 import type {
   ColumnSchema,
   EnumColumnMetadata,
@@ -35,10 +42,12 @@ export function ResourceProgressField({
   column,
   value,
   enumMeta,
+  onChange,
 }: {
   column: ColumnSchema
   value: string | null
   enumMeta: EnumColumnMetadata
+  onChange?: (value: string) => void
 }) {
   if (!enumMeta.values) return null
   const steps = Object.entries(enumMeta.values)
@@ -48,8 +57,25 @@ export function ResourceProgressField({
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between pb-4">
         <CardTitle>{formatTitle(column.name)}</CardTitle>
+        {onChange && (
+          <Select value={value ?? ""} onValueChange={onChange}>
+            <SelectTrigger className="h-8 w-[140px] text-xs capitalize">
+              {/* FIX: Explicitly format the value so it doesn't show in_review */}
+              <SelectValue placeholder="Select status">
+                {value ? formatTitle(value) : undefined}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {steps.map(([key]) => (
+                <SelectItem key={key} value={key} className="text-xs capitalize">
+                  {formatTitle(key)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </CardHeader>
       <CardContent>
         <div className="flex items-start">
@@ -74,12 +100,14 @@ export function ResourceProgressField({
               >
                 <div className="flex flex-col items-center gap-2">
                   <div
+                    onClick={() => onChange?.(key)}
                     className={cn(
-                      "flex size-10 items-center justify-center rounded-full border-2 transition-colors",
+                      "flex size-10 items-center justify-center rounded-full border-2 transition-all",
                       filled
                         ? filledCircle[variant]
                         : "border-muted bg-background text-muted-foreground",
-                      isActive && "ring-2 ring-ring ring-offset-2"
+                      isActive && "ring-2 ring-ring ring-offset-2",
+                      onChange && "cursor-pointer hover:opacity-80"
                     )}
                   >
                     {Icon ? <Icon className="size-5" /> : null}

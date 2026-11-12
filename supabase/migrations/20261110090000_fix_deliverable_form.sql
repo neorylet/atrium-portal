@@ -1,4 +1,4 @@
--- 1. Restore project_id to the form and hide status from the form (since it's a progress bar)
+-- 1. Restore project_id to the form and keep status in metadata (so the stepper handles it)
 COMMENT ON TABLE public.deliverables IS '{
   "display": "Deliverables",
   "icon": "FileText",
@@ -33,10 +33,9 @@ COMMENT ON TABLE public.deliverables IS '{
   }
 }';
 
--- 2. Hide the status from the creation form specifically
+-- 2. Enable the visual stepper for status (REMOVED hidden_in_form)
 COMMENT ON COLUMN public.deliverables.status IS '{
   "name": "Status",
-  "hidden_in_form": true,
   "progress": true,
   "values": {
     "draft": {"variant": "secondary", "icon": "File"},
