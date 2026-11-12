@@ -1,10 +1,10 @@
-import { useSuspenseQuery } from "@tanstack/react-query"
+import { useSuspenseQuery, useQuery } from "@tanstack/react-query"
 import {
   Link,
   Outlet,
   createFileRoute,
   notFound,
-  useRouter,
+  useNavigate,
 } from "@tanstack/react-router"
 import type { ErrorComponentProps } from "@tanstack/react-router"
 
@@ -13,7 +13,7 @@ import { AlertCircleIcon, FileXIcon } from "lucide-react"
 import { DefaultHeader } from "#/components/layouts/default-header"
 import { ResourceActions } from "#/components/resource/resource-actions"
 import { ResourceKanban } from "#/components/resource/resource-kanban"
-import { ResourceViewFilterPresets } from "#/components/resource/resource-view-filter-presets"
+import { ResourceMultiSelectFilter } from "#/components/resource/resource-multi-select-filter"
 import type {
   KanbanViewData,
   KanbanViewReducedData,
@@ -40,6 +40,7 @@ import { getEnumBadgeMetaMap, getEnumValues } from "#/lib/fields"
 import { formatTitle } from "#/lib/format"
 import { pageTitle } from "#/lib/page-title"
 import { resourceDataQueryOptions } from "#/lib/supabase/data/resource"
+import { supabase } from "#/lib/supabase/client"
 
 export const Route = createFileRoute(
   "/$schema/resource/$resource/kanban/$kanbanId"
@@ -220,7 +221,7 @@ function RouteComponent() {
   const search = Route.useSearch()
   const { kanbanView } = Route.useLoaderData()
   const { resourceSchema, columnsSchema } = Route.useRouteContext()
-  const navigate = useRouter()
+  const navigate = useNavigate()
 
   const meta = JSON.parse(resourceSchema.comment ?? "{}") as TableMetadata
   const isTable = isTableSchema(resourceSchema)
@@ -278,8 +279,28 @@ function RouteComponent() {
 
   const canInsert = useHasPermission({ schema, resource, action: "insert" })
 
-  const kanbanFilterPresets = meta.filter_presets?.filter(p => p.id === 'project_id') ?? []
-  const activePresetId = search.filterPreset ?? "__all__"
+  // Fetch projects for filter
+  const { data: projectsData } = useQuery({
+    queryKey: ["projects", "id", "name"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .schema(schema)
+        .from("projects")
+        .select("id, name")
+        .order("name")
+      if (error) throw error
+      return data
+    },
+  })
+
+  const projectOptions = (projectsData ?? []).map((p) => ({
+    label: p.name,
+    value: p.id,
+  }))
+
+  const currentProjects = search.project_id
+    ? String(search.project_id).replace("in.", "").split(",")
+    : []
 
   return (
     <>
@@ -298,13 +319,20 @@ function RouteComponent() {
           meta={meta}
           currentViewId={kanbanView.id}
         />
-        <ResourceViewFilterPresets
-          filterPresets={kanbanFilterPresets}
-          activePresetId={activePresetId}
-          onFilterChange={(presetId) => {
+        <ResourceMultiSelectFilter
+          label="Projects"
+          options={projectOptions}
+          selectedValues={currentProjects}
+          onChange={(newSelected) => {
             navigate({
               to: ".",
-              search: { ...search, filterPreset: presetId === "__all__" ? undefined : presetId },
+              search: {
+                ...search,
+                project_id:
+                  newSelected.length > 0
+                    ? `in.${newSelected.join(",")}`
+                    : undefined,
+              },
             })
           }}
         />

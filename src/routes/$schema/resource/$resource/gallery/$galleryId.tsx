@@ -4,7 +4,7 @@ import {
   Outlet,
   createFileRoute,
   notFound,
-  useRouter,
+  useNavigate,
 } from "@tanstack/react-router"
 import type { ErrorComponentProps } from "@tanstack/react-router"
 
@@ -13,7 +13,7 @@ import { AlertCircleIcon, FileXIcon } from "lucide-react"
 import { DefaultHeader } from "#/components/layouts/default-header"
 import { ResourceActions } from "#/components/resource/resource-actions"
 import { ResourceGallery } from "#/components/resource/resource-gallery"
-import { ResourceViewFilterPresets } from "#/components/resource/resource-view-filter-presets"
+import { ResourceMultiSelectFilter } from "#/components/resource/resource-multi-select-filter"
 import type { GalleryViewData } from "#/components/resource/resource-gallery"
 import { ResourceViewSwitcher } from "#/components/resource/resource-view-switcher"
 import { Button } from "#/components/ui/button"
@@ -33,7 +33,7 @@ import { getFilterVariants } from "#/lib/columns"
 import { getTableQuery, validateTableSearch } from "#/lib/data-table-search"
 import type { GalleryLayout, TableMetadata } from "#/lib/database-meta.types"
 import { isTableSchema } from "#/lib/database-meta.types"
-import { getEnumBadgeMetaMap } from "#/lib/fields"
+import { getEnumBadgeMetaMap, getEnumValues } from "#/lib/fields"
 import { formatTitle } from "#/lib/format"
 import { pageTitle } from "#/lib/page-title"
 import { resourceDataQueryOptions } from "#/lib/supabase/data/resource"
@@ -209,7 +209,7 @@ function RouteComponent() {
   const search = Route.useSearch()
   const { galleryView } = Route.useLoaderData()
   const { resourceSchema, columnsSchema } = Route.useRouteContext()
-  const navigate = useRouter()
+  const navigate = useNavigate()
 
   const meta = JSON.parse(resourceSchema.comment ?? "{}") as TableMetadata
   const isTable = isTableSchema(resourceSchema)
@@ -253,8 +253,17 @@ function RouteComponent() {
 
   const canInsert = useHasPermission({ schema, resource, action: "insert" })
 
-  const galleryFilterPresets = meta.filter_presets?.filter(p => p.id === 'status') ?? []
-  const activePresetId = search.filterPreset ?? "__all__"
+  // Extract status options from columnsSchema
+  const statusColumn = columnsSchema?.find((col) => col.name === "status")
+  const statusValues = getEnumValues(statusColumn)
+  const statusOptions = statusValues.map((value) => ({
+    label: formatTitle(value),
+    value: value,
+  }))
+
+  const currentStatuses = search.status
+    ? String(search.status).replace("in.", "").split(",")
+    : []
 
   return (
     <>
@@ -273,13 +282,20 @@ function RouteComponent() {
           meta={meta}
           currentViewId={galleryView.id}
         />
-        <ResourceViewFilterPresets
-          filterPresets={galleryFilterPresets}
-          activePresetId={activePresetId}
-          onFilterChange={(presetId) => {
+        <ResourceMultiSelectFilter
+          label="Status"
+          options={statusOptions}
+          selectedValues={currentStatuses}
+          onChange={(newSelected) => {
             navigate({
               to: ".",
-              search: { ...search, filterPreset: presetId === "__all__" ? undefined : presetId },
+              search: {
+                ...search,
+                status:
+                  newSelected.length > 0
+                    ? `in.${newSelected.join(",")}`
+                    : undefined,
+              },
             })
           }}
         />
