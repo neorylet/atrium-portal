@@ -13,7 +13,7 @@ import { AlertCircleIcon, FileXIcon } from "lucide-react"
 import { DefaultHeader } from "#/components/layouts/default-header"
 import { ResourceActions } from "#/components/resource/resource-actions"
 import { ResourceGallery } from "#/components/resource/resource-gallery"
-import { ResourceMultiSelectFilter } from "#/components/resource/resource-multi-select-filter"
+import { ResourceSingleSelectFilter } from "#/components/resource/resource-single-select-filter"
 import type { GalleryViewData } from "#/components/resource/resource-gallery"
 import { ResourceViewSwitcher } from "#/components/resource/resource-view-switcher"
 import { Button } from "#/components/ui/button"
@@ -67,19 +67,20 @@ export const Route = createFileRoute(
     )
     if (!galleryView) throw notFound()
 
+    const variants = getFilterVariants(
+      isTableSchema(context.resourceSchema)
+        ? context.resourceSchema
+        : null,
+      context.columnsSchema
+    )
+    // Force the variants for our custom filters
+    variants.status = "select"
+
     context.queryClient.query({
       ...resourceDataQueryOptions(
         schema,
         resource,
-        getTableQuery(
-          search,
-          getFilterVariants(
-            isTableSchema(context.resourceSchema)
-              ? context.resourceSchema
-              : null,
-            context.columnsSchema
-          )
-        )
+        getTableQuery(search, variants)
       ),
       staleTime: "static",
     })
@@ -213,11 +214,12 @@ function RouteComponent() {
 
   const meta = JSON.parse(resourceSchema.comment ?? "{}") as TableMetadata
   const isTable = isTableSchema(resourceSchema)
-  
-  const liveTableQuery = getTableQuery(
-    search,
-    getFilterVariants(isTable ? resourceSchema : null, columnsSchema)
-  )
+
+  const variants = getFilterVariants(isTable ? resourceSchema : null, columnsSchema)
+  // Force the variants for our custom filters
+  variants.status = "select"
+
+  const liveTableQuery = getTableQuery(search, variants)
   
   const { data: resourceData } = useSuspenseQuery(
     resourceDataQueryOptions(schema, resource, meta.query, liveTableQuery)
@@ -256,14 +258,14 @@ function RouteComponent() {
   // Extract status options from columnsSchema
   const statusColumn = columnsSchema?.find((col) => col.name === "status")
   const statusValues = getEnumValues(statusColumn)
-  const statusOptions = statusValues.map((value) => ({
-    label: formatTitle(value),
-    value: value,
+  const statusOptions = statusValues.map((v) => ({
+    label: formatTitle(v),
+    value: v,
   }))
 
-  const currentStatuses = search.status
-    ? String(search.status).replace("in.", "").split(",")
-    : []
+  const currentStatus = search.status
+    ? String(search.status).replace("eq.", "")
+    : undefined
 
   return (
     <>
@@ -282,19 +284,16 @@ function RouteComponent() {
           meta={meta}
           currentViewId={galleryView.id}
         />
-        <ResourceMultiSelectFilter
+        <ResourceSingleSelectFilter
           label="Status"
           options={statusOptions}
-          selectedValues={currentStatuses}
-          onChange={(newSelected) => {
+          selectedValue={currentStatus}
+          onChange={(selectedId) => {
             navigate({
               to: ".",
               search: {
                 ...search,
-                status:
-                  newSelected.length > 0
-                    ? `in.${newSelected.join(",")}`
-                    : undefined,
+                status: selectedId ? `eq.${selectedId}` : undefined,
               },
             })
           }}

@@ -5,6 +5,7 @@ import {
   createFileRoute,
   notFound,
   useNavigate,
+  useRouter,
 } from "@tanstack/react-router"
 import type { ErrorComponentProps } from "@tanstack/react-router"
 
@@ -13,7 +14,7 @@ import { AlertCircleIcon, FileXIcon } from "lucide-react"
 import { DefaultHeader } from "#/components/layouts/default-header"
 import { ResourceActions } from "#/components/resource/resource-actions"
 import { ResourceKanban } from "#/components/resource/resource-kanban"
-import { ResourceMultiSelectFilter } from "#/components/resource/resource-multi-select-filter"
+import { ResourceSingleSelectFilter } from "#/components/resource/resource-single-select-filter"
 import type {
   KanbanViewData,
   KanbanViewReducedData,
@@ -71,19 +72,20 @@ export const Route = createFileRoute(
     )
     if (!kanbanView) throw notFound()
 
+    const variants = getFilterVariants(
+      isTableSchema(context.resourceSchema)
+        ? context.resourceSchema
+        : null,
+      context.columnsSchema
+    )
+    // Force the variants for our custom filters
+    variants.project_id = "uuid"
+
     context.queryClient.query({
       ...resourceDataQueryOptions(
         schema,
         resource,
-        getTableQuery(
-          search,
-          getFilterVariants(
-            isTableSchema(context.resourceSchema)
-              ? context.resourceSchema
-              : null,
-            context.columnsSchema
-          )
-        )
+        getTableQuery(search, variants)
       ),
       staleTime: "static",
     })
@@ -225,12 +227,15 @@ function RouteComponent() {
 
   const meta = JSON.parse(resourceSchema.comment ?? "{}") as TableMetadata
   const isTable = isTableSchema(resourceSchema)
-  
-  const liveTableQuery = getTableQuery(
-    search,
-    getFilterVariants(isTable ? resourceSchema : null, columnsSchema)
-  )
-  
+
+  const variants = getFilterVariants(isTable ? resourceSchema : null, columnsSchema)
+  // Force the variants for our custom filters
+  variants.project_id = "uuid"
+
+  const liveTableQuery = getTableQuery(search, variants)
+
+  console.log("KANBAN FILTERS:", liveTableQuery.filters)
+
   const { data: resourceData } = useSuspenseQuery(
     resourceDataQueryOptions(schema, resource, meta.query, liveTableQuery)
   )
@@ -280,27 +285,29 @@ function RouteComponent() {
   const canInsert = useHasPermission({ schema, resource, action: "insert" })
 
   // Fetch projects for filter
-  const { data: projectsData } = useQuery({
-    queryKey: ["projects", "id", "name"],
+  const { data: projects } = useQuery({
+    queryKey: ["projects-for-filter"],
     queryFn: async () => {
       const { data, error } = await supabase
         .schema(schema)
         .from("projects")
-        .select("id, name")
+        .select("id, name, organisations(name)")
         .order("name")
       if (error) throw error
       return data
     },
   })
 
-  const projectOptions = (projectsData ?? []).map((p) => ({
-    label: p.name,
+  const projectOptions = projects?.map((p: any) => ({
+    label: p.organisations?.name
+      ? `${p.name} (${p.organisations.name})`
+      : p.name,
     value: p.id,
-  }))
+  })) ?? []
 
-  const currentProjects = search.project_id
-    ? String(search.project_id).replace("in.", "").split(",")
-    : []
+  const currentProject = search.project_id
+    ? String(search.project_id).replace("eq.", "")
+    : undefined
 
   return (
     <>
@@ -319,19 +326,16 @@ function RouteComponent() {
           meta={meta}
           currentViewId={kanbanView.id}
         />
-        <ResourceMultiSelectFilter
+        <ResourceSingleSelectFilter
           label="Projects"
           options={projectOptions}
-          selectedValues={currentProjects}
-          onChange={(newSelected) => {
+          selectedValue={currentProject}
+          onChange={(selectedId) => {
             navigate({
               to: ".",
               search: {
                 ...search,
-                project_id:
-                  newSelected.length > 0
-                    ? `in.${newSelected.join(",")}`
-                    : undefined,
+                project_id: selectedId ? `eq.${selectedId}` : undefined,
               },
             })
           }}
