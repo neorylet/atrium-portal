@@ -13,6 +13,7 @@ import { AlertCircleIcon, FileXIcon } from "lucide-react"
 import { DefaultHeader } from "#/components/layouts/default-header"
 import { ResourceActions } from "#/components/resource/resource-actions"
 import { ResourceKanban } from "#/components/resource/resource-kanban"
+import { ResourceViewFilterPresets } from "#/components/resource/resource-view-filter-presets"
 import type {
   KanbanViewData,
   KanbanViewReducedData,
@@ -31,6 +32,8 @@ import {
   hasResourcePermission,
   useHasPermission,
 } from "#/hooks/use-permissions"
+import { getFilterVariants } from "#/lib/columns"
+import { getTableQuery, validateTableSearch } from "#/lib/data-table-search"
 import type { KanbanLayout, TableMetadata } from "#/lib/database-meta.types"
 import { isTableSchema } from "#/lib/database-meta.types"
 import { getEnumBadgeMetaMap, getEnumValues } from "#/lib/fields"
@@ -53,7 +56,9 @@ export const Route = createFileRoute(
       : hasPrivilege
     if (!canSelect) throw notFound()
   },
-  loader: async ({ context, params }) => {
+  validateSearch: validateTableSearch,
+  loaderDeps: ({ search }) => ({ search }),
+  loader: async ({ context, params, deps: { search } }) => {
     const { schema, resource, kanbanId } = params
 
     const meta = JSON.parse(
@@ -66,7 +71,19 @@ export const Route = createFileRoute(
     if (!kanbanView) throw notFound()
 
     context.queryClient.query({
-      ...resourceDataQueryOptions(schema, resource, meta.query),
+      ...resourceDataQueryOptions(
+        schema,
+        resource,
+        getTableQuery(
+          search,
+          getFilterVariants(
+            isTableSchema(context.resourceSchema)
+              ? context.resourceSchema
+              : null,
+            context.columnsSchema
+          )
+        )
+      ),
       staleTime: "static",
     })
 
@@ -200,12 +217,21 @@ export const Route = createFileRoute(
 
 function RouteComponent() {
   const { schema, resource } = Route.useParams()
+  const search = Route.useSearch()
   const { kanbanView } = Route.useLoaderData()
   const { resourceSchema, columnsSchema } = Route.useRouteContext()
+  const navigate = useRouter()
 
   const meta = JSON.parse(resourceSchema.comment ?? "{}") as TableMetadata
+  const isTable = isTableSchema(resourceSchema)
+  
+  const liveTableQuery = getTableQuery(
+    search,
+    getFilterVariants(isTable ? resourceSchema : null, columnsSchema)
+  )
+  
   const { data: resourceData } = useSuspenseQuery(
-    resourceDataQueryOptions(schema, resource, meta.query)
+    resourceDataQueryOptions(schema, resource, meta.query, liveTableQuery)
   )
 
   const titleField = kanbanView.title
@@ -250,8 +276,9 @@ function RouteComponent() {
   const groupValues = getEnumValues(groupByColumn)
   const groupMeta = getEnumBadgeMetaMap(groupByColumn)
 
-  const isTable = isTableSchema(resourceSchema)
   const canInsert = useHasPermission({ schema, resource, action: "insert" })
+
+  const activePresetId = search.filterPreset ?? "__all__"
 
   return (
     <>
@@ -269,6 +296,16 @@ function RouteComponent() {
           resource={resource}
           meta={meta}
           currentViewId={kanbanView.id}
+        />
+        <ResourceViewFilterPresets
+          filterPresets={meta.filter_presets ?? []}
+          activePresetId={activePresetId}
+          onFilterChange={(presetId) => {
+            navigate({
+              to: ".",
+              search: { ...search, filterPreset: presetId === "__all__" ? undefined : presetId },
+            })
+          }}
         />
         {isTable && canInsert && (
           <ResourceActions

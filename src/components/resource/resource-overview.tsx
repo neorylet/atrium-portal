@@ -174,20 +174,31 @@ export function ResourceOverview<S extends DatabaseSchemas>({
   const filterPresets = meta.filter_presets ?? []
   const links = meta.links ?? []
 
-  const presetCards = filterPresets.map((preset) => (
-    <OverviewCard
-      key={`preset-${preset.id}`}
-      icon={preset.icon}
-      fallbackIcon={FilterIcon}
-      name={preset.name}
-      description={getCardDescription(
-        preset.name,
-        preset.description,
-        friendlyName
-      )}
-      onClick={() => openTableWithFilters(preset.filters)}
-    />
-  ))
+  const presetCards = filterPresets.map((preset) => {
+    const hasFilters = preset.filters && preset.filters.length > 0
+    const presetName = preset.name ?? preset.label ?? preset.id
+    return (
+      <OverviewCard
+        key={`preset-${preset.id}`}
+        icon={preset.icon}
+        fallbackIcon={FilterIcon}
+        name={presetName}
+        description={getCardDescription(
+          presetName,
+          preset.description,
+          friendlyName
+        )}
+        onClick={() => {
+          if (hasFilters) {
+            openTableWithFilters(preset.filters)
+          } else {
+            // If no filters, navigate to primary view
+            navigate(resolvePrimaryViewTarget(schema, resource, meta))
+          }
+        }}
+      />
+    )
+  })
 
   const linkCards = links.map((link) => (
     <OverviewCard
@@ -223,6 +234,13 @@ export function ResourceOverview<S extends DatabaseSchemas>({
   })
 
   const overviewCards = [...presetCards, ...linkCards, ...formCards]
+
+  // If there are no overview cards, widgets, charts, or forms, redirect to primary view
+  const hasContent = overviewCards.length > 0 || cardWidgets.length > 0 || tableWidgets.length > 0 || charts.length > 0
+  if (!hasContent) {
+    navigate(resolvePrimaryViewTarget(schema, resource, meta))
+    return null
+  }
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-4 p-4">
