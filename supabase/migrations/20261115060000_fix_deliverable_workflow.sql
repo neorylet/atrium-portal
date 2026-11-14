@@ -1,6 +1,5 @@
 -- ==========================================
 -- FIX: Auto-revert to in_review when admin updates deliverable
--- Re-attach audit trigger to ensure logging works
 -- ==========================================
 
 -- Update touch_row to auto-revert to in_review when admin edits changes_requested deliverable
@@ -31,9 +30,3 @@ begin
   return new;
 end;
 $$;
-
--- Re-attach audit trigger to deliverables to ensure logging works
-drop trigger if exists trg_audit_deliverables on public.deliverables;
-create trigger trg_audit_deliverables
-after insert or update or delete on public.deliverables
-for each row execute function supasheet.audit_trigger_function('id');
