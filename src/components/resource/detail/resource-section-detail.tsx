@@ -42,7 +42,7 @@ type Props = {
 }
 
 // 🚀 NEW COMPONENT: Guaranteed to fetch the name instead of failing on joins
-function ForeignKeyNameFetcher({ table, id }: { table: string; id: string }) {
+export function ForeignKeyNameFetcher({ table, id }: { table: string; id: string }) {
   const { data, isLoading } = useQuery({
     queryKey: ["fk-name", table, id],
     queryFn: async () => {

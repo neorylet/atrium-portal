@@ -14,6 +14,7 @@ import { formatTitle } from "#/lib/format"
 import { AllCells } from "../cells/all-cells"
 import { UserCell } from "../cells/user-cell"
 import { getColumnFieldSpan } from "../resource-form-utils"
+import { ForeignKeyNameFetcher } from "./resource-section-detail"
 
 export function ResourceMetadataView({
   resourceSchema,
@@ -64,6 +65,10 @@ export function ResourceMetadataView({
                 {/* INTERCEPT USER IDs IN THE METADATA CARD */}
                 {(column.name === "updated_by" || column.name === "created_by") ? (
                   value ? <UserCell userId={value as string} /> : <span className="text-muted">N/A</span>
+                ) : column.name === "org_id" ? (
+                  value ? <ForeignKeyNameFetcher table="organisations" id={value as string} /> : <span className="text-muted">N/A</span>
+                ) : column.name === "project_id" ? (
+                  value ? <ForeignKeyNameFetcher table="projects" id={value as string} /> : <span className="text-muted">N/A</span>
                 ) : (
                   <AllCells columnMetadata={columnMetadata} value={value} />
                 )}

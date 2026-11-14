@@ -46,7 +46,7 @@ export function ResourceDetailView({
   const resource = resourceSchema.name ?? ""
   const tableSchema = isTableSchema(resourceSchema) ? resourceSchema : null
   
-  const isClient = !useHasPermission({ schema, resource, action: "update" })
+  const isClient = !useHasPermission({ schema, resource, action: "insert" })
   const isDeliverables = resource === "deliverables"
   
   const { mutateAsync: updateRecord } = useMutation(
@@ -177,7 +177,7 @@ export function ResourceDetailView({
           )
         })}
 
-        {isClient && isDeliverables && (
+        {isClient && isDeliverables && singleResourceData.status === 'in_review' && (
           <div className="md:col-span-2 flex gap-2 mt-4 pt-4 border-t">
             <Button onClick={handleApprove} className="flex-1">
               Approve
