@@ -5,6 +5,7 @@ import {
   formatCountryLabel,
   formatCurrencyLabel,
   formatTimezoneLabel,
+  getCurrencyByCode,
 } from "#/lib/geo-data"
 import type { ColumnFieldMetadata, FileObject } from "#/types/fields"
 
@@ -18,6 +19,23 @@ import { PercentageCell } from "./percentage-cell"
 import { RatingCell } from "./rating-cell"
 import { SelectCell } from "./select-cell"
 import { UserCell } from "./user-cell"
+
+// Helper to format a monetary value using the row's own currency column
+const formatMoney = (value: unknown, record?: Record<string, unknown>) => {
+  if (value === null || value === undefined || value === "") return ""
+  if (typeof value !== "number" && typeof value !== "string") return ""
+  const amount = Number(value)
+  if (!Number.isFinite(amount)) return typeof value === "string" ? value : ""
+  const rawCurrency = record?.currency
+  const currencyCode =
+    typeof rawCurrency === "string" && getCurrencyByCode(rawCurrency)
+      ? rawCurrency.toUpperCase().trim()
+      : "USD"
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currencyCode,
+  }).format(amount)
+}
 
 // Helper to check if a string is a UUID
 const isUUID = (str: string) =>
@@ -43,10 +61,17 @@ export const AllCells = memo(function ({
   record?: Record<string, unknown>
 }) {
   const stringValue = value?.toString()
-  
+
   // 1. INTERCEPT USER IDs and use UserCell
-  if (columnMetadata.name === "created_by" || columnMetadata.name === "updated_by") {
-    return value ? <UserCell userId={value as string} /> : <span className="text-muted-foreground">N/A</span>
+  if (
+    columnMetadata.name === "created_by" ||
+    columnMetadata.name === "updated_by"
+  ) {
+    return value ? (
+      <UserCell userId={value as string} />
+    ) : (
+      <span className="text-muted-foreground">N/A</span>
+    )
   }
 
   // 2. Handle foreign key UUIDs - display joined name if available
@@ -56,7 +81,7 @@ export const AllCells = memo(function ({
       | Record<string, unknown>
       | null
       | undefined
-    
+
     // Support both `name` and `email` (for users table)
     if (joinedObj) {
       if (typeof joinedObj.name === "string") return joinedObj.name
@@ -86,7 +111,7 @@ export const AllCells = memo(function ({
         <SelectCell value={value as string} columnMetadata={columnMetadata} />
       )
     case "money":
-      return value ? `${value}` : ""
+      return formatMoney(value, record)
     case "currency_code":
       return value ? formatCurrencyLabel(String(value)) : ""
     case "country_code":
