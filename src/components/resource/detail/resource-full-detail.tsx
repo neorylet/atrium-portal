@@ -1,4 +1,5 @@
 import { useMemo } from "react"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 
 import {
   buildLayoutPlan,
@@ -10,6 +11,13 @@ import type {
   TableMetadata,
 } from "#/lib/database-meta.types"
 import { isTableSchema } from "#/lib/database-meta.types"
+import { updateResourceMutationOptions } from "#/lib/supabase/data/resource"
+import { toast } from "sonner"
+
+import { Button } from "#/components/ui/button"
+import { Textarea } from "#/components/ui/textarea"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "#/components/ui/dialog"
+import { useHasPermission } from "#/hooks/use-permissions"
 
 import { ResourceDetailView } from "./resource-detail-view"
 import { ResourceMetadataView } from "./resource-metadata-view"
@@ -30,6 +38,46 @@ export function ResourceFullDetail({
   showMetadata = true,
 }: Props) {
   const tableSchema = isTableSchema(resourceSchema) ? resourceSchema : null
+  const schema = resourceSchema.schema ?? ""
+  const resource = resourceSchema.name ?? ""
+  
+  const queryClient = useQueryClient()
+  const isClient = !useHasPermission({ schema, resource, action: "insert" })
+  const isDeliverables = resource === "deliverables"
+  
+  const { mutateAsync: updateRecord } = useMutation(
+    updateResourceMutationOptions(schema, resource)
+  )
+  
+  const handleApprove = async () => {
+    try {
+      await updateRecord({
+        pk: { id: record.id },
+        data: { status: "approved" }
+      })
+      queryClient.invalidateQueries({
+        queryKey: ["supasheet", "resource-data", schema, resource],
+      })
+      toast.success("Deliverable approved")
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to approve")
+    }
+  }
+  
+  const handleRequestChanges = async (feedback: string) => {
+    try {
+      await updateRecord({
+        pk: { id: record.id },
+        data: { status: "changes_requested", client_feedback: feedback }
+      })
+      queryClient.invalidateQueries({
+        queryKey: ["supasheet", "resource-data", schema, resource],
+      })
+      toast.success("Changes requested")
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to request changes")
+    }
+  }
 
   const { colByName, progressFields, filteredPlan } = useMemo(() => {
     const tableMeta = JSON.parse(
@@ -89,6 +137,39 @@ export function ResourceFullDetail({
               record={record}
             />
           ))}
+          {isClient && isDeliverables && record.status === 'in_review' && (
+            <div className="flex gap-2 pt-4 border-t">
+              <Button onClick={handleApprove} className="flex-1">
+                Approve
+              </Button>
+              <Dialog>
+                <DialogTrigger render={<Button variant="outline" className="flex-1">Request Changes</Button>} />
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Request Changes</DialogTitle>
+                  </DialogHeader>
+                  <Textarea
+                    placeholder="Please describe the changes needed..."
+                    className="min-h-[120px]"
+                    id="changes-feedback"
+                  />
+                  <DialogFooter>
+                    <DialogTrigger render={<Button variant="outline">Cancel</Button>} />
+                    <Button
+                      onClick={() => {
+                        const textarea = document.getElementById('changes-feedback') as HTMLTextAreaElement
+                        if (textarea?.value.trim()) {
+                          handleRequestChanges(textarea.value.trim())
+                        }
+                      }}
+                    >
+                      Submit
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+          )}
         </>
       ) : (
         <ResourceDetailView

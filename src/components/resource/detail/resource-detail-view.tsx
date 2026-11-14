@@ -1,5 +1,3 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-
 import { Editor } from "#/components/editor/editor-md"
 import {
   Card,
@@ -9,10 +7,6 @@ import {
   CardTitle,
 } from "#/components/ui/card"
 import { Label } from "#/components/ui/label"
-import { Button } from "#/components/ui/button"
-import { Textarea } from "#/components/ui/textarea"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "#/components/ui/dialog"
-import { useHasPermission } from "#/hooks/use-permissions"
 import { getColumnMetadata } from "#/lib/columns"
 import type {
   ColumnSchema,
@@ -21,15 +15,13 @@ import type {
 } from "#/lib/database-meta.types"
 import { getMetaFields, isTableSchema } from "#/lib/database-meta.types"
 import { formatTitle } from "#/lib/format"
-import { updateResourceMutationOptions } from "#/lib/supabase/data/resource"
 import type { FileObject } from "#/types/fields"
-import { toast } from "sonner"
 
 import { AllCells } from "../cells/all-cells"
-import { UserCell } from "../cells/user-cell"
 import { getColumnFieldSpan } from "../resource-form-utils"
 import { ResourceAvatarDisplay } from "./resource-avatar-display"
 import { ResourceFileDisplay } from "./resource-file-display"
+import { ResourceMetadataView } from "./resource-metadata-view"
 import { InvoiceReceipt } from "./invoice-receipt"
 
 export function ResourceDetailView({
@@ -41,47 +33,7 @@ export function ResourceDetailView({
   columnsSchema: ColumnSchema[]
   singleResourceData: Record<string, unknown>
 }) {
-  const queryClient = useQueryClient()
-  const schema = resourceSchema.schema ?? ""
-  const resource = resourceSchema.name ?? ""
   const tableSchema = isTableSchema(resourceSchema) ? resourceSchema : null
-  
-  const isClient = !useHasPermission({ schema, resource, action: "insert" })
-  const isDeliverables = resource === "deliverables"
-  
-  const { mutateAsync: updateRecord } = useMutation(
-    updateResourceMutationOptions(schema, resource)
-  )
-  
-  const handleApprove = async () => {
-    try {
-      await updateRecord({
-        pk: { id: singleResourceData.id },
-        data: { status: "approved" }
-      })
-      queryClient.invalidateQueries({
-        queryKey: ["supasheet", "resource-data", schema, resource],
-      })
-      toast.success("Deliverable approved")
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to approve")
-    }
-  }
-  
-  const handleRequestChanges = async (feedback: string) => {
-    try {
-      await updateRecord({
-        pk: { id: singleResourceData.id },
-        data: { status: "changes_requested", client_feedback: feedback }
-      })
-      queryClient.invalidateQueries({
-        queryKey: ["supasheet", "resource-data", schema, resource],
-      })
-      toast.success("Changes requested")
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to request changes")
-    }
-  }
   
   if (Object.keys(singleResourceData).length === 0) return null
   
@@ -90,7 +42,7 @@ export function ResourceDetailView({
   // If the resource is 'invoices', render the custom receipt
   // and completely bypass the generic grid layout below.
   // ==========================================
-  if (resource === "invoices") {
+  if (resourceSchema.name === "invoices") {
     return (
       <div className="flex flex-col gap-6">
         <InvoiceReceipt
@@ -106,8 +58,6 @@ export function ResourceDetailView({
     columnsSchema?.filter((column) => {
       const name = column.name
       if (["id"].includes(name)) return false
-      if (isClient && isDeliverables && name === "client_feedback") return false
-      if (name === "created_by" || name === "updated_by") return true
       return !getMetaFields(resourceSchema).includes(name)
     }) ?? []
 
@@ -146,9 +96,7 @@ export function ResourceDetailView({
                 {columnMetadata.icon} {formatTitle(columnMetadata.name)}
               </Label>
               <div className="text-sm text-muted-foreground">
-                {(column.name === "updated_by" || column.name === "created_by") ? (
-                  value ? <UserCell userId={value as string} /> : <span className="text-muted">N/A</span>
-                ) : value ? (
+                {value ? (
                   columnMetadata.variant === "rich_text" ? (
                     <Editor
                       name={columnMetadata.name}
@@ -176,41 +124,12 @@ export function ResourceDetailView({
             </div>
           )
         })}
-
-        {isClient && isDeliverables && singleResourceData.status === 'in_review' && (
-          <div className="md:col-span-2 flex gap-2 mt-4 pt-4 border-t">
-            <Button onClick={handleApprove} className="flex-1">
-              Approve
-            </Button>
-            <Dialog>
-              <DialogTrigger render={<Button variant="outline" className="flex-1">Request Changes</Button>} />
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Request Changes</DialogTitle>
-                </DialogHeader>
-                <Textarea
-                  placeholder="Please describe the changes needed..."
-                  className="min-h-[120px]"
-                  id="changes-feedback"
-                />
-                <DialogFooter>
-                  <DialogTrigger render={<Button variant="outline">Cancel</Button>} />
-                  <Button
-                    onClick={() => {
-                      const textarea = document.getElementById('changes-feedback') as HTMLTextAreaElement
-                      if (textarea?.value.trim()) {
-                        handleRequestChanges(textarea.value.trim())
-                      }
-                    }}
-                  >
-                    Submit
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
-        )}
       </CardContent>
+      <ResourceMetadataView
+        resourceSchema={resourceSchema}
+        columnsSchema={columnsSchema}
+        singleResourceData={singleResourceData}
+      />
     </Card>
   )
 }
