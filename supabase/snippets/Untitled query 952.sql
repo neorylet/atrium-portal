@@ -1,3 +1,4 @@
-UPDATE public.deliverables
-SET approved_at = NULL
-WHERE status <> 'approved' AND approved_at IS NOT NULL;
+SELECT n.title, n.body, un.user_id 
+FROM supasheet.notifications n
+JOIN supasheet.user_notifications un ON un.notification_id = n.id
+ORDER BY n.created_at DESC LIMIT 5;

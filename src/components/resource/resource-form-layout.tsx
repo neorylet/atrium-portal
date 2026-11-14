@@ -6,6 +6,7 @@ import { useNavigate } from "@tanstack/react-router"
 
 import { Button } from "#/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card"
+import { Alert, AlertDescription } from "#/components/ui/alert"
 import type {
   ColumnSchema,
   FormMode,
@@ -59,6 +60,7 @@ type ResourceFormLayoutProps = {
   mode: FormMode
   headerTitle: string
   saveOnly?: boolean
+  clientFeedback?: string | null
 }
 
 export function ResourceFormLayout({
@@ -68,6 +70,7 @@ export function ResourceFormLayout({
   mode,
   headerTitle,
   saveOnly,
+  clientFeedback,
 }: ResourceFormLayoutProps) {
   const navigate = useNavigate()
   const schema = tableSchema?.schema
@@ -202,6 +205,13 @@ export function ResourceFormLayout({
           form={form}
         />
       ))}
+      {clientFeedback && (
+        <Alert className="border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950">
+          <AlertDescription className="text-amber-900 dark:text-amber-100">
+            <strong>Client requested changes:</strong> {clientFeedback}
+          </AlertDescription>
+        </Alert>
+      )}
       {plan.sections.map((s) => (
         <SectionCard
           key={s.id}

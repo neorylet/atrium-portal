@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "#/components/ui/dialog"
+import { Alert, AlertDescription } from "#/components/ui/alert"
 import type {
   ColumnSchema,
   PrimaryKey,
@@ -36,6 +37,7 @@ interface ResourceUpdateFormProps {
   record: Record<string, unknown>
   tableSchema: TableSchema
   saveOnly?: boolean
+  clientFeedback?: string | null
 }
 
 export function ResourceUpdateForm({
@@ -44,6 +46,7 @@ export function ResourceUpdateForm({
   record,
   tableSchema,
   saveOnly,
+  clientFeedback,
 }: ResourceUpdateFormProps) {
   const schema = tableSchema?.schema
   const resource = tableSchema?.name
@@ -146,6 +149,7 @@ export function ResourceUpdateForm({
           mode="update"
           headerTitle="Edit record"
           saveOnly={saveOnly}
+          clientFeedback={clientFeedback}
         />
       </form>
 

@@ -70,6 +70,7 @@ function RouteComponent() {
         record={record}
         tableSchema={tableSchema}
         saveOnly
+        clientFeedback={record.status === 'changes_requested' ? (record.client_feedback as string | null) : null}
       />
     )
   }
