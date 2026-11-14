@@ -72,7 +72,7 @@ export function InvoiceReceipt({
 
   if (!invoiceId) return null;
 
-  const lineItems = fetchedData?.items || (initialRecord?.invoice_items as InvoiceItem[]) || []
+  const lineItems = fetchedData?.items || []
   
   const invoiceNumber = initialRecord?.invoice_number as string
   const status = initialRecord?.status as string

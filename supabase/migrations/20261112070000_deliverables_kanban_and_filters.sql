@@ -1,4 +1,3 @@
--- Add Kanban view and filter presets to Deliverables
 COMMENT ON TABLE public.deliverables IS '{
   "display": "Deliverables",
   "icon": "FileText",

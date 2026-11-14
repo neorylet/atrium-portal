@@ -1,14 +1,10 @@
--- 1. Allow creating invoices without manually typing the amount
 ALTER TABLE public.invoices ALTER COLUMN amount SET DEFAULT 0;
 
--- 2. Set defaults for a better form experience
 ALTER TABLE public.invoices ALTER COLUMN status SET DEFAULT 'draft';
 ALTER TABLE public.invoices ALTER COLUMN currency SET DEFAULT 'USD';
 ALTER TABLE public.invoices ALTER COLUMN issued_on SET DEFAULT CURRENT_DATE;
 
--- 3. Create a bulletproof trigger for org_id
--- If project_id is selected, use the project's org. 
--- If not, fall back to the logged-in client's org_id from their JWT.
+
 CREATE OR REPLACE FUNCTION public.set_invoice_org_id()
 RETURNS trigger
 LANGUAGE plpgsql
