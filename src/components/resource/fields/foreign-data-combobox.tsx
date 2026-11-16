@@ -102,6 +102,8 @@ export function ForeignDataCombobox({
       (c) =>
         c !== relationship.target_column_name && !joinConfig.columns.includes(c)
     ),
+    // FIX: If this is the projects table, fetch the related organisation name
+    ...(relationship.target_table_name === "projects" ? ["organisations(name)"] : []),
   ]
 
   const { data } = useQuery(
@@ -114,6 +116,20 @@ export function ForeignDataCombobox({
   )
 
   const records: Record<string, unknown>[] = data?.result ?? []
+
+  // FIX: Helper to format the label as "Project Name (Organization Name)"
+  const getLabel = (record: Record<string, unknown>) => {
+    const mainLabel = String(record[displayColumn] ?? "")
+    
+    if (relationship.target_table_name === "projects") {
+      const orgData = record.organisations as { name?: string } | null
+      if (orgData?.name) {
+        return `${mainLabel} (${orgData.name})`
+      }
+    }
+    
+    return mainLabel
+  }
 
   const selectedRecord =
     records.find(
@@ -132,9 +148,7 @@ export function ForeignDataCombobox({
         if (record) onRecordSelect?.(record)
       }}
       items={records}
-      itemToStringLabel={(record) =>
-        String(record[displayColumn] ?? "")
-      }
+      itemToStringLabel={(record) => getLabel(record)} // FIX: Use getLabel here
       isItemEqualToValue={(item, val) =>
         item[relationship.target_column_name] ===
         val[relationship.target_column_name]
@@ -157,7 +171,7 @@ export function ForeignDataCombobox({
               <Item size="xs" className="p-0">
                 <ItemContent>
                   <ItemTitle className="whitespace-nowrap">
-                    {String(record[displayColumn] ?? "")}
+                    {getLabel(record)} {/* FIX: Use getLabel here too */}
                   </ItemTitle>
                 </ItemContent>
               </Item>
