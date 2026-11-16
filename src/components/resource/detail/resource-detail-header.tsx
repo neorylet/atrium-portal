@@ -15,6 +15,7 @@ import type {
   TableMetadata,
 } from "#/lib/database-meta.types"
 import { isTableSchema } from "#/lib/database-meta.types"
+import { getErrorMessage } from "#/lib/errors"
 import {
   deleteResourceMutationOptions,
   resourceActionsQueryOptions,
@@ -79,9 +80,7 @@ export function ResourceDetailHeader({
         })
       }
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to archive/delete record"
-      )
+      toast.error(getErrorMessage(err, "Failed to archive/delete record"))
     }
   })
 

@@ -23,6 +23,7 @@ import type {
   ResourceSchema,
 } from "#/lib/database-meta.types"
 import { isTableSchema } from "#/lib/database-meta.types"
+import { getErrorMessage } from "#/lib/errors"
 import { getPkValue } from "#/lib/fields"
 import { updateResourceMutationOptions } from "#/lib/supabase/data/resource"
 
@@ -122,9 +123,7 @@ export function ResourceCalendar({
         },
         onError: (err) => {
           setEvents(previous)
-          toast.error(
-            err instanceof Error ? err.message : "Failed to update record"
-          )
+          toast.error(getErrorMessage(err, "Failed to update record"))
         },
       }
     )

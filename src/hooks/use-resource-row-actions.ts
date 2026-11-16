@@ -5,6 +5,7 @@ import { toast } from "sonner"
 import { evaluateConditionalField } from "#/components/resource/resource-form-utils"
 import { useConfirmAction } from "#/hooks/use-confirm-action"
 import type { ColumnSchema, RowActionMeta } from "#/lib/database-meta.types"
+import { getErrorMessage } from "#/lib/errors"
 import type { ResourceActionRow } from "#/lib/supabase/data/resource"
 import { runResourceActionMutationOptions } from "#/lib/supabase/data/resource"
 
@@ -96,9 +97,7 @@ export function useResourceRowActions({
       })
       toast.success(meta.success_message ?? `${meta.name} succeeded`)
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : `Failed to run ${meta.name}`
-      )
+      toast.error(getErrorMessage(err, `Failed to run ${meta.name}`))
     }
   }
 

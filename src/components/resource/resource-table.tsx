@@ -19,6 +19,7 @@ import type {
   ResourceSchema,
 } from "#/lib/database-meta.types"
 import { isTableSchema } from "#/lib/database-meta.types"
+import { getErrorMessage } from "#/lib/errors"
 import {
   deleteBulkResourceMutationOptions,
   resourceActionsQueryOptions,
@@ -74,9 +75,7 @@ export function ResourceTable({
         rows.length === 1 ? "Record deleted" : `${rows.length} records deleted`
       )
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to delete record"
-      )
+      toast.error(getErrorMessage(err, "Failed to delete record"))
     }
   }
 

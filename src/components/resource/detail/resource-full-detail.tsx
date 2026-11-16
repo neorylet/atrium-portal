@@ -11,6 +11,7 @@ import type {
   TableMetadata,
 } from "#/lib/database-meta.types"
 import { isTableSchema } from "#/lib/database-meta.types"
+import { getErrorMessage } from "#/lib/errors"
 import { updateResourceMutationOptions } from "#/lib/supabase/data/resource"
 import { toast } from "sonner"
 
@@ -60,7 +61,7 @@ export function ResourceFullDetail({
       })
       toast.success("Deliverable approved")
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to approve")
+      toast.error(getErrorMessage(err, "Failed to approve"))
     }
   }
   
@@ -75,7 +76,7 @@ export function ResourceFullDetail({
       })
       toast.success("Changes requested")
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to request changes")
+      toast.error(getErrorMessage(err, "Failed to request changes"))
     }
   }
 

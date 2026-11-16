@@ -8,6 +8,7 @@ import type {
   TableMetadata,
   TableSchema,
 } from "#/lib/database-meta.types"
+import { getErrorMessage } from "#/lib/errors"
 import { insertResourceMutationOptions } from "#/lib/supabase/data/resource"
 
 import { useAppForm } from "./form-hook"
@@ -65,9 +66,7 @@ export function ResourceNewForm({
       try {
         inserted = await insertRow(payload)
       } catch (error) {
-        toast.error(
-          error instanceof Error ? error.message : "An error occurred"
-        )
+        toast.error(getErrorMessage(error, "An error occurred during creation"))
         console.error(error)
         return
       }

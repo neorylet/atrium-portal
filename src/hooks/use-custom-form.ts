@@ -23,6 +23,7 @@ import type {
   TableMetadata,
   TableSchema,
 } from "#/lib/database-meta.types"
+import { getErrorMessage } from "#/lib/errors"
 import type { ResourceFormRow } from "#/lib/supabase/data/form"
 import { runResourceFormMutationOptions } from "#/lib/supabase/data/form"
 
@@ -163,9 +164,7 @@ export function useCustomForm<S extends DatabaseSchemas>({
           params: payload,
         })
       } catch (err) {
-        toast.error(
-          err instanceof Error ? err.message : `Failed to submit ${meta.name}`
-        )
+        toast.error(getErrorMessage(err, `Failed to submit ${meta.name}`))
         return
       }
 

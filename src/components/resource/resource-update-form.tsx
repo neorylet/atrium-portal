@@ -21,6 +21,7 @@ import type {
   TableMetadata,
   TableSchema,
 } from "#/lib/database-meta.types"
+import { getErrorMessage } from "#/lib/errors"
 import { updateResourceMutationOptions } from "#/lib/supabase/data/resource"
 
 import { useAppForm } from "./form-hook"
@@ -92,7 +93,13 @@ export function ResourceUpdateForm({
     defaultValues,
     onSubmit: async ({ value, meta }) => {
       const data = buildUpdatePayload(value, editableCols, behavior)
-      await updateRow({ pk, data })
+      try {
+        await updateRow({ pk, data })
+      } catch (error) {
+        toast.error(getErrorMessage(error, "Failed to save changes"))
+        console.error(error)
+        return
+      }
       queryClient.invalidateQueries({
         queryKey: ["supasheet", "resource-data", schema, resource],
       })

@@ -11,6 +11,7 @@ import type {
   TableMetadata,
   TableSchema,
 } from "#/lib/database-meta.types"
+import { getErrorMessage } from "#/lib/errors"
 import {
   insertResourceMutationOptions,
   updateResourceMutationOptions,
@@ -132,9 +133,7 @@ export function ResourceFormSheetContent({
         })
         onClose()
       } catch (error: unknown) {
-        const message =
-          error instanceof Error ? error.message : "An error occurred"
-        toast.error(message)
+        toast.error(getErrorMessage(error, "An error occurred"))
         console.error(error)
       }
     },

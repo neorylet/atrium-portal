@@ -29,6 +29,7 @@ import type {
 import { isTableSchema } from "#/lib/database-meta.types"
 import type { EnumBadgeMeta } from "#/lib/fields"
 import { getPkValue } from "#/lib/fields"
+import { getErrorMessage } from "#/lib/errors"
 import { formatTitle } from "#/lib/format"
 import { deleteResourceMutationOptions } from "#/lib/supabase/data/resource"
 import { cn } from "#/lib/utils"
@@ -134,9 +135,7 @@ function GalleryCard<S extends DatabaseSchemas>({
       })
       toast.success("Record deleted")
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to delete record"
-      )
+      toast.error(getErrorMessage(err, "Failed to delete record"))
     }
   })
 
