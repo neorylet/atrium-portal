@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query"
 import { Outlet, createFileRoute } from "@tanstack/react-router"
 
-import { ArrowLeftIcon, FolderIcon } from "lucide-react"
+import { FolderIcon } from "lucide-react"
 
+import { ModuleSwitcher } from "#/components/layouts/module-switcher"
 import { NavMain } from "#/components/layouts/nav-main"
 import { NavResources } from "#/components/layouts/nav-resources"
 import { NavSecondary } from "#/components/layouts/nav-secondary"
@@ -23,6 +24,9 @@ import {
   SidebarProvider,
 } from "#/components/ui/sidebar"
 import { Skeleton } from "#/components/ui/skeleton"
+import { getAppModules } from "#/hooks/use-modules"
+import { useHasRole } from "#/hooks/use-permissions"
+import { schemasQueryOptions } from "#/lib/supabase/data/meta"
 import { storageBucketsQueryOptions } from "#/lib/supabase/data/storage"
 
 export const Route = createFileRoute("/storage")({
@@ -33,7 +37,11 @@ export const Route = createFileRoute("/storage")({
 })
 
 function RouteComponent() {
+  const isAdmin = useHasRole("x-admin")
   const { data: buckets = [], isLoading } = useQuery(storageBucketsQueryOptions)
+  const { data: schemas = [], isLoading: schemasLoading } = useQuery(schemasQueryOptions)
+
+  const modules = getAppModules(schemas, isAdmin)
 
   return (
     <SidebarProvider
@@ -46,14 +54,7 @@ function RouteComponent() {
     >
       <Sidebar collapsible="offcanvas" variant="floating">
         <SidebarHeader>
-          <div className="flex items-center gap-1">
-            <SidebarMenuButton className="min-w-0 flex-1 px-2">
-              <div className="flex aspect-square size-5 items-center justify-center rounded bg-primary text-primary-foreground">
-                <FolderIcon className="size-4" />
-              </div>
-              <span className="truncate font-medium">Storage</span>
-            </SidebarMenuButton>
-          </div>
+          <ModuleSwitcher modules={modules} isLoading={isLoading || schemasLoading} />
         </SidebarHeader>
         <SidebarContent>
           <NavMain schema="storage" items={[]} />
@@ -96,11 +97,6 @@ function RouteComponent() {
                     ...b,
                     url: `/storage/${b.id}`,
                   }))}
-              />
-              <NavSecondary
-                items={[
-                  { title: "Back to Main", url: "/", icon: <ArrowLeftIcon /> },
-                ]}
               />
             </SidebarGroupContent>
           </SidebarGroup>

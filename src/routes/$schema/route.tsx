@@ -46,6 +46,8 @@ import {
 } from "#/components/ui/sidebar"
 import type { DatabaseSchemas } from "#/lib/database-meta.types"
 import { formatTitle } from "#/lib/format"
+import { getAppModules } from "#/hooks/use-modules"
+import { useHasRole } from "#/hooks/use-permissions"
 import { userPermissionsQueryOptions } from "#/lib/supabase/data/core"
 import {
   navItemsQueryOptions,
@@ -141,15 +143,12 @@ const NAV_TYPE_CONFIG: Record<
 function RouteComponent() {
   const params = Route.useParams()
   const { authUser } = Route.useRouteContext()
+  const isAdmin = useHasRole("x-admin")
   const { data: schemas = [], isLoading: schemasLoading } = useQuery({
     ...schemasQueryOptions,
     enabled: !!authUser,
   })
-  const modules = schemas.map((s) => ({
-    name: formatTitle(s.schema),
-    icon: <DatabaseIcon />,
-    url: `/${s.schema}`,
-  }))
+  const modules = getAppModules(schemas, isAdmin)
   const { data: resources = [], isLoading: resourcesLoading } = useQuery({
     ...resourcesQueryOptions(params.schema),
     enabled: !!authUser,
@@ -205,11 +204,6 @@ function RouteComponent() {
                     ...r,
                     url: `/${params.schema}/resource/${r.id}`,
                   }))}
-                />
-                <NavSecondary
-                  items={[
-                    { title: "Storage", url: "/storage", icon: <FolderIcon /> },
-                  ]}
                 />
               </SidebarGroupContent>
             </SidebarGroup>
