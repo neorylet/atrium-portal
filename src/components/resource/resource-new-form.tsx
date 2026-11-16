@@ -17,6 +17,7 @@ import {
   buildCreatePayload,
   getCreateInitialValue,
   isSkippedForCreate,
+  validateResource,
 } from "./resource-form-utils"
 
 export function ResourceNewForm({
@@ -60,6 +61,10 @@ export function ResourceNewForm({
 
   const form = useAppForm({
     defaultValues,
+    validators: {
+      onChange: ({ value }) => validateResource(tableSchema?.name ?? "", value),
+      onSubmit: ({ value }) => validateResource(tableSchema?.name ?? "", value),
+    },
     onSubmit: async ({ value, meta }) => {
       const payload = buildCreatePayload(value, writableCols, behavior)
       let inserted: Record<string, unknown> | null = null

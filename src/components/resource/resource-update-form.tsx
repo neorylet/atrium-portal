@@ -31,6 +31,7 @@ import {
   buildUpdatePayload,
   getUpdateInitialValue,
   isSkippedForUpdate,
+  validateResource,
 } from "./resource-form-utils"
 
 interface ResourceUpdateFormProps {
@@ -114,6 +115,10 @@ export function ResourceUpdateForm({
 
   const form = useAppForm({
     defaultValues,
+    validators: {
+      onChange: ({ value }) => validateResource(tableSchema?.name ?? "", value),
+      onSubmit: ({ value }) => validateResource(tableSchema?.name ?? "", value),
+    },
     onSubmit: async ({ value, meta }) => {
       const data = buildUpdatePayload(value, editableCols, behavior)
       try {

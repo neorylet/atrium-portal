@@ -24,11 +24,11 @@ export function isSkippedForUpdate(
 export function isSkippedForCreate(col: ColumnSchema): boolean {
   if (col.is_identity ?? false) return true
   if (col.is_generated ?? false) return true
-  
+
   // Check for hidden_in_form flag in column comment
   const meta = JSON.parse(col.comment ?? "{}") as ColumnMetadata
   if (meta.hidden_in_form) return true
-  
+
   return false
 }
 
@@ -114,6 +114,31 @@ function toList(value: string | string[]): string[] {
   return Array.isArray(value)
     ? value.map((v) => String(v)).filter(Boolean)
     : value.split(",").filter(Boolean)
+}
+
+export function validateResource(
+  tableName: string,
+  values: Record<string, unknown>
+): { fields: Record<string, string> } | undefined {
+  if (tableName === "deliverables") {
+    if (values.status === "in_review" && !values.file_path) {
+      return {
+        fields: { file_path: "Upload a file before sending to review." },
+      }
+    }
+  }
+
+  if (tableName === "invoices" && values.status === "sent") {
+    if (!values.project_id) {
+      return { fields: { project_id: "Select a project before sending." } }
+    }
+
+    if (Number(values.amount) <= 0) {
+      return { fields: { amount: "Amount must be greater than 0." } }
+    }
+  }
+
+  return undefined
 }
 
 export function evaluateConditionalField(

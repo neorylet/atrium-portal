@@ -28,7 +28,10 @@ function FieldErrors() {
   return (
     <FieldError
       errors={field.state.meta.errors.map((e: unknown) => ({
-        message: String(e),
+        message:
+          typeof e === "string"
+            ? e
+            : ((e as { message?: string } | null)?.message ?? String(e)),
       }))}
     />
   )
