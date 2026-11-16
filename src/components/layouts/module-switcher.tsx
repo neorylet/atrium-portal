@@ -2,7 +2,7 @@ import * as React from "react"
 
 import { Link, useRouterState } from "@tanstack/react-router"
 
-import { ChevronsUpDownIcon } from "lucide-react"
+import { ChevronsUpDownIcon, FolderIcon, HomeIcon } from "lucide-react"
 
 import {
   DropdownMenu,
@@ -20,6 +20,7 @@ import {
 } from "#/components/ui/sidebar"
 import { Skeleton } from "#/components/ui/skeleton"
 import { useAppConfig } from "#/hooks/use-app-config"
+import { useHasRole } from "#/hooks/use-permissions"
 
 export function ModuleSwitcher({
   modules,
@@ -35,6 +36,7 @@ export function ModuleSwitcher({
   const { isMobile } = useSidebar()
   const { location } = useRouterState()
   const { name: appName } = useAppConfig()
+  const isAdmin = useHasRole("x-admin")
 
   const activeModule =
     modules.find((m) => location.pathname.startsWith(m.url)) ?? modules[0]
@@ -90,7 +92,23 @@ export function ModuleSwitcher({
               <DropdownMenuLabel className="text-xs text-muted-foreground">
                 Modules
               </DropdownMenuLabel>
-              {modules.map((module) => (
+              <DropdownMenuItem
+                render={<Link to="/" as never />}
+                className="gap-2 p-2"
+              >
+                <HomeIcon className="mr-2 h-4 w-4" />
+                Home
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                render={<Link to="/storage" as never />}
+                className="gap-2 p-2"
+              >
+                <FolderIcon className="mr-2 h-4 w-4" />
+                Storage
+              </DropdownMenuItem>
+              {modules
+                .filter((m) => isAdmin !== false || !m.url.includes("/core"))
+                .map((module) => (
                 <DropdownMenuItem
                   key={module.name}
                   render={<Link to={module.url as never} />}

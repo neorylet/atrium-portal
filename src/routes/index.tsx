@@ -14,6 +14,7 @@ import { Badge } from "#/components/ui/badge"
 import { Separator } from "#/components/ui/separator"
 import { Skeleton } from "#/components/ui/skeleton"
 import { useUser } from "#/hooks/use-user"
+import { useHasRole } from "#/hooks/use-permissions"
 import { pageTitle } from "#/lib/page-title"
 import { schemasQueryOptions } from "#/lib/supabase/data/meta"
 
@@ -85,6 +86,7 @@ function HomePageSkeleton() {
 
 function HomePage() {
   const user = useUser()
+  const isAdmin = useHasRole("x-admin")
   const { schemas } = Route.useLoaderData()
 
   if (!user) return null
@@ -152,7 +154,9 @@ function HomePage() {
                   <ArrowRightIcon className="size-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
                 </div>
               </Link>
-              {schemas.map((s) => (
+              {schemas
+                .filter((s) => isAdmin !== false || s.schema !== "core")
+                .map((s) => (
                 <Link
                   key={s.schema}
                   to={"/$schema"}

@@ -8,8 +8,8 @@ export interface AppConfig {
 }
 
 export const DEFAULT_APP_CONFIG: AppConfig = {
-  name: "Supasheet",
-  description: "Turn your Postgres schema into any business app.",
+  name: "Atrium Portal",
+  description: "Agency Project Management",
 }
 
 function asString(value: unknown, fallback: string): string {

@@ -1,4 +1,6 @@
-import { Outlet, createFileRoute } from "@tanstack/react-router"
+import { Outlet, createFileRoute, useNavigate } from "@tanstack/react-router"
+
+import { useEffect } from "react"
 
 import { DatabaseIcon, FolderIcon } from "lucide-react"
 
@@ -20,6 +22,7 @@ import {
 } from "#/components/ui/sidebar"
 import type { TableMetadata } from "#/lib/database-meta.types"
 import { formatTitle } from "#/lib/format"
+import { useHasRole } from "#/hooks/use-permissions"
 import { userPermissionsQueryOptions } from "#/lib/supabase/data/core"
 import { schemasQueryOptions } from "#/lib/supabase/data/meta"
 
@@ -61,8 +64,23 @@ export const Route = createFileRoute("/core")({
 })
 
 function RouteComponent() {
+  const isAdmin = useHasRole("x-admin")
+  const navigate = useNavigate()
   const { schemas } = Route.useLoaderData()
-  const resources = CORE_RESOURCES
+
+  useEffect(() => {
+    // Only redirect if the query has resolved AND the user is not an admin
+    if (isAdmin === false) {
+      navigate({ to: "/" })
+    }
+  }, [isAdmin, navigate])
+
+  // Return null while isAdmin is undefined (loading state)
+  if (isAdmin === undefined) return null
+
+  const resources = isAdmin === false 
+    ? CORE_RESOURCES.filter(r => r.id !== "audit_logs") 
+    : CORE_RESOURCES
   const modules = schemas.map((s) => ({
     name: formatTitle(s.schema),
     icon: <DatabaseIcon />,
