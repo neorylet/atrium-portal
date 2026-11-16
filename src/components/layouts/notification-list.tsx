@@ -16,7 +16,6 @@ import {
 import { toast } from "sonner"
 
 import { ConfirmDeleteDialog } from "#/components/shared/confirm-delete-dialog"
-import { Badge } from "#/components/ui/badge"
 import { Button } from "#/components/ui/button"
 import {
   Empty,
@@ -206,9 +205,6 @@ function NotificationItem({
               />
             )}
           </div>
-          <Badge variant="outline" className="font-mono text-[10px]">
-            {notification.type}
-          </Badge>
           {notification.body && (
             <p className="text-sm text-muted-foreground">{notification.body}</p>
           )}
