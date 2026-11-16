@@ -29,6 +29,7 @@ import type {
 import { isTableSchema } from "#/lib/database-meta.types"
 import type { EnumBadgeMeta } from "#/lib/fields"
 import { getPkValue } from "#/lib/fields"
+import { formatTitle } from "#/lib/format"
 import { deleteResourceMutationOptions } from "#/lib/supabase/data/resource"
 import { cn } from "#/lib/utils"
 
@@ -151,7 +152,7 @@ function GalleryCard<S extends DatabaseSchemas>({
             {item.badge && (
               <Badge variant={item.badgeVariant ?? "outline"} className="shrink-0">
                 <DynamicIcon iconName={item.badgeIcon} />
-                {item.badge}
+                {formatTitle(item.badge)}
               </Badge>
             )}
           </div>
