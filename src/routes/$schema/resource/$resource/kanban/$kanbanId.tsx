@@ -14,11 +14,11 @@ import { AlertCircleIcon, FileXIcon } from "lucide-react"
 import { DefaultHeader } from "#/components/layouts/default-header"
 import { ResourceActions } from "#/components/resource/resource-actions"
 import { ResourceKanban } from "#/components/resource/resource-kanban"
-import { ResourceSingleSelectFilter } from "#/components/resource/resource-single-select-filter"
 import type {
   KanbanViewData,
   KanbanViewReducedData,
 } from "#/components/resource/resource-kanban"
+import { ResourceSingleSelectFilter } from "#/components/resource/resource-single-select-filter"
 import { ResourceViewSwitcher } from "#/components/resource/resource-view-switcher"
 import { Button } from "#/components/ui/button"
 import {
@@ -40,8 +40,8 @@ import { isTableSchema } from "#/lib/database-meta.types"
 import { getEnumBadgeMetaMap, getEnumValues } from "#/lib/fields"
 import { formatTitle } from "#/lib/format"
 import { pageTitle } from "#/lib/page-title"
-import { resourceDataQueryOptions } from "#/lib/supabase/data/resource"
 import { supabase } from "#/lib/supabase/client"
+import { resourceDataQueryOptions } from "#/lib/supabase/data/resource"
 
 export const Route = createFileRoute(
   "/$schema/resource/$resource/kanban/$kanbanId"
@@ -73,13 +73,11 @@ export const Route = createFileRoute(
     if (!kanbanView) throw notFound()
 
     const variants = getFilterVariants(
-      isTableSchema(context.resourceSchema)
-        ? context.resourceSchema
-        : null,
+      isTableSchema(context.resourceSchema) ? context.resourceSchema : null,
       context.columnsSchema
     )
     // Force the variants for our custom filters
-    variants.project_id = "uuid"
+    variants.org_id = "uuid"
 
     context.queryClient.query({
       ...resourceDataQueryOptions(
@@ -228,9 +226,12 @@ function RouteComponent() {
   const meta = JSON.parse(resourceSchema.comment ?? "{}") as TableMetadata
   const isTable = isTableSchema(resourceSchema)
 
-  const variants = getFilterVariants(isTable ? resourceSchema : null, columnsSchema)
+  const variants = getFilterVariants(
+    isTable ? resourceSchema : null,
+    columnsSchema
+  )
   // Force the variants for our custom filters
-  variants.project_id = "uuid"
+  variants.org_id = "uuid"
 
   const liveTableQuery = getTableQuery(search, variants)
 
@@ -284,29 +285,27 @@ function RouteComponent() {
 
   const canInsert = useHasPermission({ schema, resource, action: "insert" })
 
-  // Fetch projects for filter
-  const { data: projects } = useQuery({
-    queryKey: ["projects-for-filter"],
+  const { data: organisations } = useQuery({
+    queryKey: ["organisations-for-filter"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .schema(schema)
-        .from("projects")
-        .select("id, name, organisations(name)")
+        .schema("public")
+        .from("organisations")
+        .select("id, name")
         .order("name")
       if (error) throw error
       return data
     },
   })
 
-  const projectOptions = projects?.map((p: any) => ({
-    label: p.organisations?.name
-      ? `${p.name} (${p.organisations.name})`
-      : p.name,
-    value: p.id,
-  })) ?? []
+  const organisationOptions =
+    organisations?.map((org) => ({
+      label: org.name,
+      value: org.id,
+    })) ?? []
 
-  const currentProject = search.project_id
-    ? String(search.project_id).replace("eq.", "")
+  const currentOrganisation = search.org_id
+    ? String(search.org_id).replace("eq.", "")
     : undefined
 
   return (
@@ -327,15 +326,16 @@ function RouteComponent() {
           currentViewId={kanbanView.id}
         />
         <ResourceSingleSelectFilter
-          label="Projects"
-          options={projectOptions}
-          selectedValue={currentProject}
+          label="Organizations"
+          options={organisationOptions}
+          selectedValue={currentOrganisation}
           onChange={(selectedId) => {
             navigate({
               to: ".",
               search: {
                 ...search,
-                project_id: selectedId ? `eq.${selectedId}` : undefined,
+                org_id: selectedId ? `eq.${selectedId}` : undefined,
+                project_id: undefined,
               },
             })
           }}

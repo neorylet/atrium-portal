@@ -1,14 +1,11 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 
-import { EyeIcon, Image as ImageIcon, Paperclip, Trash } from "lucide-react"
-import { toast } from "sonner"
+import { EyeIcon, Image as ImageIcon, Paperclip } from "lucide-react"
 
 import { DynamicIcon } from "#/components/resource/resource-definition-utils"
-import { ConfirmDeleteDialog } from "#/components/shared/confirm-delete-dialog"
 import { Badge } from "#/components/ui/badge"
 import { Button } from "#/components/ui/button"
-import { ButtonGroup, ButtonGroupSeparator } from "#/components/ui/button-group"
+import { ButtonGroup } from "#/components/ui/button-group"
 import { Card, CardContent } from "#/components/ui/card"
 import {
   Empty,
@@ -17,22 +14,16 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "#/components/ui/empty"
-import { useConfirmAction } from "#/hooks/use-confirm-action"
-import { useHasPermission } from "#/hooks/use-permissions"
 import type {
   DatabaseSchemas,
   DatabaseTables,
   DatabaseViews,
-  PrimaryKey,
   ResourceSchema,
 } from "#/lib/database-meta.types"
 import { isTableSchema } from "#/lib/database-meta.types"
 import type { EnumBadgeMeta } from "#/lib/fields"
 import { getPkValue } from "#/lib/fields"
-import { getErrorMessage } from "#/lib/errors"
 import { formatTitle } from "#/lib/format"
-import { deleteResourceMutationOptions } from "#/lib/supabase/data/resource"
-import { cn } from "#/lib/utils"
 
 export interface GalleryViewData {
   cover: string | null
@@ -58,7 +49,6 @@ export function ResourceGallery({
   const primaryKeys = isTableSchema(resourceSchema)
     ? (resourceSchema.primary_keys ?? [])
     : []
-  const isTable = isTableSchema(resourceSchema)
 
   return (
     <div className="flex flex-col gap-4">
@@ -85,8 +75,6 @@ export function ResourceGallery({
                 schema={schema}
                 resource={resource}
                 resourceId={resourceId}
-                primaryKeys={primaryKeys}
-                isTable={isTable}
               />
             )
           })}
@@ -101,22 +89,13 @@ function GalleryCard<S extends DatabaseSchemas>({
   schema,
   resource,
   resourceId,
-  primaryKeys,
-  isTable,
 }: {
   item: GalleryViewData
   schema: S
   resource: DatabaseViews<S> | DatabaseTables<S>
   resourceId: string
-  primaryKeys: PrimaryKey[]
-  isTable: boolean
 }) {
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const canDelete = useHasPermission({ schema, resource, action: "delete" })
-  const { mutateAsync: deleteRow } = useMutation(
-    deleteResourceMutationOptions(schema, resource)
-  )
 
   const goToDetail = () =>
     navigate({
@@ -124,32 +103,20 @@ function GalleryCard<S extends DatabaseSchemas>({
       params: { schema, resource, resourceId },
     })
 
-  const deleteConfirm = useConfirmAction(async (target: GalleryViewData) => {
-    const pk = Object.fromEntries(
-      primaryKeys.map((pkField) => [pkField.name, target.data[pkField.name]])
-    )
-    try {
-      await deleteRow(pk)
-      queryClient.invalidateQueries({
-        queryKey: ["supasheet", "resource-data", schema, resource],
-      })
-      toast.success("Record deleted")
-    } catch (err) {
-      toast.error(getErrorMessage(err, "Failed to delete record"))
-    }
-  })
-
   return (
     <>
       <Card className="min-h-[220px]">
-        <CardContent className="flex flex-col h-full justify-between gap-3 p-4">
+        <CardContent className="flex h-full flex-col justify-between gap-3 p-4">
           {/* Row 1: Title & Status */}
           <div className="flex items-start justify-between gap-3">
-            <h3 className="text-lg font-semibold line-clamp-2 flex-1">
+            <h3 className="line-clamp-2 flex-1 text-lg font-semibold">
               {item.title}
             </h3>
             {item.badge && (
-              <Badge variant={item.badgeVariant ?? "outline"} className="shrink-0">
+              <Badge
+                variant={item.badgeVariant ?? "outline"}
+                className="shrink-0"
+              >
                 <DynamicIcon iconName={item.badgeIcon} />
                 {formatTitle(item.badge)}
               </Badge>
@@ -157,14 +124,14 @@ function GalleryCard<S extends DatabaseSchemas>({
           </div>
 
           {/* Row 2: Project & Org Badges */}
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex flex-wrap gap-2">
             {item.data.projects?.name && (
-              <span className="text-xs bg-muted px-2 py-0.5 rounded">
+              <span className="rounded bg-muted px-2 py-0.5 text-xs">
                 {item.data.projects.name}
               </span>
             )}
             {item.data.organisations?.name && (
-              <span className="text-xs bg-muted px-2 py-0.5 rounded">
+              <span className="rounded bg-muted px-2 py-0.5 text-xs">
                 {item.data.organisations.name}
               </span>
             )}
@@ -187,39 +154,20 @@ function GalleryCard<S extends DatabaseSchemas>({
 
           {/* Row 4: Description */}
           {item.description && (
-            <p className="text-sm text-muted-foreground line-clamp-2">
+            <p className="line-clamp-2 text-sm text-muted-foreground">
               {item.description}
             </p>
           )}
 
           {/* Row 5: Actions (Footer) */}
-          <ButtonGroup className="w-full mt-auto">
+          <ButtonGroup className="mt-auto w-full">
             <Button variant="secondary" className="flex-1" onClick={goToDetail}>
               <EyeIcon aria-hidden="true" />
               View details
             </Button>
-            {isTable && canDelete && (
-              <>
-                <ButtonGroupSeparator />
-                <Button
-                  size="icon"
-                  variant="destructive"
-                  onClick={() => deleteConfirm.request(item)}
-                >
-                  <Trash />
-                </Button>
-              </>
-            )}
           </ButtonGroup>
         </CardContent>
       </Card>
-      <ConfirmDeleteDialog
-        open={deleteConfirm.open}
-        onOpenChange={(open) => !open && deleteConfirm.cancel()}
-        onConfirm={deleteConfirm.confirm}
-        title="Delete record?"
-        pending={deleteConfirm.pending}
-      />
     </>
   )
 }

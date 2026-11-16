@@ -18,15 +18,6 @@ import {
 } from "#/components/reui/kanban"
 import type { KanbanCommitMeta } from "#/components/reui/kanban"
 import { Badge } from "#/components/ui/badge"
-import { Button } from "#/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "#/components/ui/dialog"
 import {
   Empty,
   EmptyDescription,
@@ -36,6 +27,7 @@ import {
 } from "#/components/ui/empty"
 import type { ResourceSchema } from "#/lib/database-meta.types"
 import { isTableSchema } from "#/lib/database-meta.types"
+import { getErrorMessage } from "#/lib/errors"
 import type { EnumBadgeMeta } from "#/lib/fields"
 import { getPkValue } from "#/lib/fields"
 import { updateResourceMutationOptions } from "#/lib/supabase/data/resource"
@@ -138,15 +130,17 @@ export function ResourceKanban({
     seedGroupColumns(data, allowed)
   )
 
-  const [pendingMove, setPendingMove] = useState<{
-    next: KanbanViewReducedData
-    meta: KanbanCommitMeta<KanbanViewData>
-  } | null>(null)
-
   useEffect(() => {
     // Diagnostic: shows exactly which keys the parent is handing us.
     // If "approved" appears here, the leak is upstream of this component.
-    console.debug("[kanban] resource:", resource, "groupBy:", column, "data keys:", Object.keys(data))
+    console.debug(
+      "[kanban] resource:",
+      resource,
+      "groupBy:",
+      column,
+      "data keys:",
+      Object.keys(data)
+    )
     setColumns(seedGroupColumns(data, allowed))
   }, [data, allowed, resource, column])
 
@@ -165,69 +159,72 @@ export function ResourceKanban({
       if (meta.kind !== "item" || meta.activeContainer === meta.overContainer) {
         return
       }
-      setPendingMove({ next, meta })
-    },
-    []
-  )
 
-  const confirmMove = () => {
-    if (!pendingMove) return
-    const { next, meta } = pendingMove
-    const target = meta.overContainer
-
-    // HARD BLOCK: never call the API for a column that isn't allowed.
-    // No silent fallback -- moving a card somewhere the user didn't drop it is worse than failing.
-    if (allowed && !allowed.includes(target)) {
-      console.warn(`[kanban] Blocked move to invalid column "${target}"`)
-      toast.error(`"${target}" is not a valid ${column} for ${resource}.`)
-      setColumns(meta.previousValue)
-      setPendingMove(null)
-      return
-    }
-
-    const prevIds = new Set(
-      (meta.previousValue[target] ?? []).map(buildId)
-    )
-    const item = (next[target] ?? []).find((i) => !prevIds.has(buildId(i)))
-
-    if (!item) {
-      toast.error("Could not identify the moved item.")
-      setColumns(meta.previousValue)
-      setPendingMove(null)
-      return
-    }
-
-    const pk = Object.fromEntries(
-      primaryKeys.map((f) => [f.name, item.data[f.name]])
-    )
-
-    updateResource(
-      { pk, data: { [column]: target } },
-      {
-        onSuccess: () => {
-          queryClient.invalidateQueries({
-            queryKey: ["supasheet", "resource-data", schema, resource],
-          })
-          setPendingMove(null)
-          toast.success("Project moved")
-        },
-        onError: (err) => {
-          setColumns(meta.previousValue)
-          toast.error(
-            (err as { message?: string })?.message ?? "Failed to update record"
-          )
-          setPendingMove(null)
-        },
+      const target = meta.overContainer
+      if (allowed && !allowed.includes(target)) {
+        toast.error(`"${target}" is not a valid stage.`)
+        setColumns(meta.previousValue)
+        return
       }
-    )
-  }
 
-  const cancelMove = () => {
-    if (pendingMove) {
-      setColumns(pendingMove.meta.previousValue)
-      setPendingMove(null)
-    }
-  }
+      const prevIds = new Set((meta.previousValue[target] ?? []).map(buildId))
+      const item = (next[target] ?? []).find((i) => !prevIds.has(buildId(i)))
+      if (!item) return
+
+      const pk = Object.fromEntries(
+        primaryKeys.map((f) => [f.name, item.data[f.name]])
+      )
+      const originalStatus = meta.activeContainer
+
+      updateResource(
+        { pk, data: { [column]: target } },
+        {
+          onSuccess: () => {
+            queryClient.invalidateQueries({
+              queryKey: ["supasheet", "resource-data", schema, resource],
+            })
+            toast.success(`Moved to ${target.replace(/_/g, " ")}`, {
+              action: {
+                label: "Undo",
+                onClick: () => {
+                  updateResource(
+                    { pk, data: { [column]: originalStatus } },
+                    {
+                      onSuccess: () => {
+                        queryClient.invalidateQueries({
+                          queryKey: [
+                            "supasheet",
+                            "resource-data",
+                            schema,
+                            resource,
+                          ],
+                        })
+                        toast.success("Move undone")
+                      },
+                    }
+                  )
+                },
+              },
+            })
+          },
+          onError: (err) => {
+            setColumns(meta.previousValue)
+            toast.error(getErrorMessage(err, "Failed to update record"))
+          },
+        }
+      )
+    },
+    [
+      allowed,
+      column,
+      resource,
+      primaryKeys,
+      updateResource,
+      queryClient,
+      buildId,
+      setColumns,
+    ]
+  )
 
   const hasNoData =
     Object.keys(columns).length === 0 ||
@@ -267,7 +264,7 @@ export function ResourceKanban({
                   <KanbanColumn
                     key={columnValue}
                     value={columnValue}
-                    className="flex flex-col gap-2 rounded-lg border bg-card p-2.5 min-w-[300px] w-[300px] shrink-0"
+                    className="flex w-[300px] min-w-[300px] shrink-0 flex-col gap-2 rounded-lg border bg-card p-2.5"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -320,7 +317,7 @@ export function ResourceKanban({
                                   )}
                                 </div>
                                 {task.data.organisations?.name && (
-                                  <span className="text-xs font-medium bg-secondary text-secondary-foreground px-2 py-0.5 rounded-md w-fit">
+                                  <span className="w-fit rounded-md bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">
                                     {task.data.organisations.name}
                                   </span>
                                 )}
@@ -352,27 +349,6 @@ export function ResourceKanban({
           </Kanban>
         )}
       </div>
-
-      <Dialog open={!!pendingMove} onOpenChange={(open) => !open && cancelMove()}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Move Project</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to move this project to the{" "}
-              <strong className="capitalize">
-                {pendingMove?.meta.overContainer.replace(/_/g, " ")}
-              </strong>{" "}
-              stage?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={cancelMove}>
-              Cancel
-            </Button>
-            <Button onClick={confirmMove}>Confirm Move</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   )
 }
