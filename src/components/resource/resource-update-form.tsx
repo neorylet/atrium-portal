@@ -1,10 +1,12 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useStore } from "@tanstack/react-form"
-import { useBlocker, useNavigate } from "@tanstack/react-router"
 import { useEffect, useMemo, useState } from "react"
+
+import { useStore } from "@tanstack/react-form"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useBlocker, useNavigate } from "@tanstack/react-router"
 
 import { toast } from "sonner"
 
+import { Alert, AlertDescription } from "#/components/ui/alert"
 import { Button } from "#/components/ui/button"
 import {
   Dialog,
@@ -14,7 +16,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "#/components/ui/dialog"
-import { Alert, AlertDescription } from "#/components/ui/alert"
 import type {
   ColumnSchema,
   PrimaryKey,
@@ -61,17 +62,39 @@ export function ResourceUpdateForm({
 
   const editableCols = useMemo(() => {
     return columnsSchema.filter(
-      (col) => !isSkippedForUpdate(col, primaryKeys) && (col.is_updatable ?? true)
+      (col) =>
+        !isSkippedForUpdate(col, primaryKeys) && (col.is_updatable ?? true)
     )
   }, [columnsSchema, primaryKeys])
 
-  const defaultValues = useMemo(() => 
-    Object.fromEntries(
-      editableCols.map((col) => [
-        col.name ?? col.id,
-        getUpdateInitialValue(col, record),
-      ])
-    ), [editableCols, record]
+  const recordStatus = record?.status
+  const lockedColumns = useMemo(() => {
+    const isLocked =
+      tableSchema?.name === "invoices" &&
+      recordStatus !== undefined &&
+      recordStatus !== "draft"
+
+    if (!isLocked) return undefined
+
+    return new Set(
+      editableCols
+        .map((col) => col.name ?? col.id)
+        .filter(
+          (name): name is string =>
+            !!name && name !== "status" && name !== "paid_on"
+        )
+    )
+  }, [editableCols, recordStatus, tableSchema?.name])
+
+  const defaultValues = useMemo(
+    () =>
+      Object.fromEntries(
+        editableCols.map((col) => [
+          col.name ?? col.id,
+          getUpdateInitialValue(col, record),
+        ])
+      ),
+    [editableCols, record]
   )
 
   // Track the baseline for the dirty check
@@ -104,7 +127,7 @@ export function ResourceUpdateForm({
         queryKey: ["supasheet", "resource-data", schema, resource],
       })
       toast.success("Record updated")
-      
+
       // THE FIX: Update baseline and reset form so it's no longer dirty
       setBaseline(value)
       form.reset({ values: value })
@@ -120,9 +143,10 @@ export function ResourceUpdateForm({
 
   const isDirty = useStore(form.store, (s) => s.isDirty)
   const currentValues = useStore(form.store, (s) => s.values)
-  
+
   // Compare against the baseline instead of the original defaultValues
-  const isActuallyDirty = isDirty || JSON.stringify(currentValues) !== JSON.stringify(baseline)
+  const isActuallyDirty =
+    isDirty || JSON.stringify(currentValues) !== JSON.stringify(baseline)
 
   // 1. Block internal navigation
   const blocker = useBlocker({
@@ -156,6 +180,7 @@ export function ResourceUpdateForm({
           writableCols={editableCols}
           form={form}
           mode="update"
+          lockedColumns={lockedColumns}
           headerTitle="Edit record"
           saveOnly={saveOnly}
           clientFeedback={clientFeedback}

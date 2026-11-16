@@ -43,6 +43,7 @@ type ResourceForeignTableProps = {
   resourceSchema: ResourceSchema
   columnsSchema: ColumnSchema[]
   selectClause?: string
+  readOnly?: boolean
 }
 
 export function ResourceForeignTable({
@@ -52,6 +53,7 @@ export function ResourceForeignTable({
   resourceSchema,
   columnsSchema,
   selectClause,
+  readOnly,
 }: ResourceForeignTableProps) {
   const queryClient = useQueryClient()
   const primaryKeys = isTableSchema(resourceSchema)
@@ -94,8 +96,9 @@ export function ResourceForeignTable({
         columnsSchema,
         resourceSchema,
         actions,
+        readOnly,
       }),
-    [columnsSchema, resourceSchema, actions]
+    [columnsSchema, resourceSchema, actions, readOnly]
   )
 
   const { query, state } = useLocalTableState(columns)
@@ -165,17 +168,21 @@ export function ResourceForeignTable({
     <DataTable
       table={tableInstance}
       actionBar={
-        <DataTableBulkActions
-          table={tableInstance}
-          filename={table}
-          onDelete={canDelete && primaryKeys.length ? handleDelete : undefined}
-        />
+        readOnly ? undefined : (
+          <DataTableBulkActions
+            table={tableInstance}
+            filename={table}
+            onDelete={
+              canDelete && primaryKeys.length ? handleDelete : undefined
+            }
+          />
+        )
       }
     >
       <DataTableAdvancedToolbar table={tableInstance}>
         <DataTableFilterMenu table={tableInstance} />
         <DataTableSortMenu table={tableInstance} />
-        {canInsert && (
+        {canInsert && !readOnly && (
           <NewRecordTrigger
             schema={schema}
             resource={table}

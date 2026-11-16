@@ -86,6 +86,11 @@ export function ResourceDetailTab({
   } = many
 
   const parentValue = parentRecord?.[__targetColumn]
+  const isReadOnly =
+    !!parentRecord &&
+    resource === "invoices" &&
+    resourceSchema.name === "invoice_items" &&
+    parentRecord.status !== "draft"
 
   return (
     <>
@@ -107,6 +112,7 @@ export function ResourceDetailTab({
             resourceSchema={resourceSchema}
             columnsSchema={columns ?? []}
             selectClause={__selectClause}
+            readOnly={isReadOnly}
           />
         )}
       </Suspense>

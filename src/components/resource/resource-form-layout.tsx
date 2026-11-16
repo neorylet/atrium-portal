@@ -1,18 +1,18 @@
 import { useEffect, useMemo, useRef } from "react"
-import { useStore } from "@tanstack/react-form"
-import { getPrimaryTimezoneForCountry } from "#/lib/geo-data"
 
+import { useStore } from "@tanstack/react-form"
 import { useNavigate } from "@tanstack/react-router"
 
+import { Alert, AlertDescription } from "#/components/ui/alert"
 import { Button } from "#/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card"
-import { Alert, AlertDescription } from "#/components/ui/alert"
 import type {
   ColumnSchema,
   FormMode,
   TableMetadata,
   TableSchema,
 } from "#/lib/database-meta.types"
+import { getPrimaryTimezoneForCountry } from "#/lib/geo-data"
 
 import type { ResourceFormApi } from "./form-hook"
 import { ProgressFieldPreview } from "./resource-form-progress-preview"
@@ -61,6 +61,7 @@ type ResourceFormLayoutProps = {
   headerTitle: string
   saveOnly?: boolean
   clientFeedback?: string | null
+  lockedColumns?: ReadonlySet<string>
 }
 
 export function ResourceFormLayout({
@@ -71,6 +72,7 @@ export function ResourceFormLayout({
   headerTitle,
   saveOnly,
   clientFeedback,
+  lockedColumns,
 }: ResourceFormLayoutProps) {
   const navigate = useNavigate()
   const schema = tableSchema?.schema
@@ -82,7 +84,7 @@ export function ResourceFormLayout({
     () => JSON.parse(tableSchema?.comment ?? "{}") as TableMetadata,
     [tableSchema?.comment]
   )
-  
+
   const { plan, colByName, progressFields } = useMemo(() => {
     // 1. Get the columns that will be rendered as progress steppers (e.g., status)
     const progressData = getProgressFields(writableCols)
@@ -184,6 +186,7 @@ export function ResourceFormLayout({
                   spanClass={spanClass}
                   tableSchema={tableSchema}
                   form={form}
+                  isDisabled={lockedColumns?.has(col.name ?? col.id ?? "")}
                 />
               )
             })}
@@ -219,6 +222,7 @@ export function ResourceFormLayout({
           colByName={colByName}
           tableSchema={tableSchema}
           form={form}
+          lockedColumns={lockedColumns}
         />
       ))}
       {footer}

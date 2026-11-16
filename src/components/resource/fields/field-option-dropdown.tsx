@@ -19,6 +19,10 @@ export function FieldOptionDropdown({
   setValue: (value: string | null | undefined) => void
   children?: React.ReactNode
 }) {
+  if (columnMetadata.disabled) {
+    return null
+  }
+
   if (!children && columnMetadata.required && !columnMetadata.defaultValue) {
     return null
   }

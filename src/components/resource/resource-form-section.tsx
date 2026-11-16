@@ -31,11 +31,13 @@ export function FieldWithBehavior({
   spanClass,
   tableSchema,
   form,
+  isDisabled,
 }: {
   col: ColumnSchema
   spanClass?: string
   tableSchema: TableSchema
   form: ResourceFormApi
+  isDisabled?: boolean
 }) {
   const behavior = (JSON.parse(tableSchema.comment ?? "{}") as TableMetadata)
     .fields?.behavior?.[col.name ?? col.id ?? ""]
@@ -53,6 +55,7 @@ export function FieldWithBehavior({
           columnSchema={col}
           tableSchema={tableSchema}
           form={form}
+          isReadOnly={isDisabled}
         />
       </div>
     )
@@ -78,9 +81,10 @@ export function FieldWithBehavior({
         const isRequired = behavior?.required?.length
           ? evaluateConditionalField(behavior.required, watchedValues)
           : undefined
-        const isReadOnly = behavior?.read_only?.length
+        const conditionalReadOnly = behavior?.read_only?.length
           ? evaluateConditionalField(behavior.read_only, watchedValues)
           : undefined
+        const isReadOnly = isDisabled ? true : conditionalReadOnly
         return (
           <div className={spanClass}>
             <ResourceFormField
@@ -102,11 +106,13 @@ export function SectionCard({
   colByName,
   tableSchema,
   form,
+  lockedColumns,
 }: {
   section: ResolvedFieldSection
   colByName: Map<string, ColumnSchema>
   tableSchema: TableSchema
   form: ResourceFormApi
+  lockedColumns?: ReadonlySet<string>
 }) {
   const body = (
     <CardContent className="grid grid-cols-1 gap-4 py-4 md:grid-cols-2">
@@ -122,6 +128,7 @@ export function SectionCard({
             spanClass={spanClass}
             tableSchema={tableSchema}
             form={form}
+            isDisabled={lockedColumns?.has(col.name ?? col.id ?? "")}
           />
         )
       })}

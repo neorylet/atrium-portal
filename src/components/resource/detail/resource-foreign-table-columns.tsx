@@ -14,7 +14,11 @@ import type {
   ResourceSchema,
   TableMetadata,
 } from "#/lib/database-meta.types"
-import { getMetaFields, isTableSchema, parseComment } from "#/lib/database-meta.types"
+import {
+  getMetaFields,
+  isTableSchema,
+  parseComment,
+} from "#/lib/database-meta.types"
 import type { ResourceActionRow } from "#/lib/supabase/data/resource"
 
 import { ResourceColumnHeader } from "../resource-column-header"
@@ -26,10 +30,12 @@ export function getResourceForeignTableColumns({
   columnsSchema,
   resourceSchema,
   actions = [],
+  readOnly,
 }: {
   columnsSchema: ColumnSchema[]
   resourceSchema: ResourceSchema
   actions?: ResourceActionRow[]
+  readOnly?: boolean
 }) {
   const tableSchema = isTableSchema(resourceSchema) ? resourceSchema : null
   const primaryKeys = tableSchema?.primary_keys ?? []
@@ -71,7 +77,9 @@ export function getResourceForeignTableColumns({
 
   // Filter out metadata fields and hidden_in_table columns, then sort by sections order
   const sortedColumns = (columnsSchema ?? [])
-    .filter((c) => !metaFields.includes(c.name) && !columnHiddenInTable.get(c.name))
+    .filter(
+      (c) => !metaFields.includes(c.name) && !columnHiddenInTable.get(c.name)
+    )
     .sort((a, b) => {
       const orderA = columnOrderMap.get(a.name)
       const orderB = columnOrderMap.get(b.name)
@@ -83,41 +91,42 @@ export function getResourceForeignTableColumns({
       return 0
     })
 
-  const selectColumns: DataTableColumnDef<ResourceDataSchema>[] = hasPrimaryKeys
-    ? [
-        getDataTableSelectColumn<ResourceDataSchema>(),
-        {
-          id: "detail",
-          header: () => null,
-          cell: ({ row }) => {
-            const pk = Object.fromEntries(
-              primaryKeys.map((k) => [k.name, row.original[k.name]])
-            )
-            return (
-              <DetailRecordTrigger
-                pk={pk}
-                primaryKeyNames={primaryKeyNames}
-                schema={resourceSchema.schema}
-                resource={resourceSchema.name}
-                size="icon-xs"
-                variant="outline"
-                className="size-5 opacity-0 transition-opacity group-hover:opacity-100 [&_svg]:size-3"
-              >
-                <ArrowUpRightIcon />
-              </DetailRecordTrigger>
-            )
+  const selectColumns: DataTableColumnDef<ResourceDataSchema>[] =
+    hasPrimaryKeys && !readOnly
+      ? [
+          getDataTableSelectColumn<ResourceDataSchema>(),
+          {
+            id: "detail",
+            header: () => null,
+            cell: ({ row }) => {
+              const pk = Object.fromEntries(
+                primaryKeys.map((k) => [k.name, row.original[k.name]])
+              )
+              return (
+                <DetailRecordTrigger
+                  pk={pk}
+                  primaryKeyNames={primaryKeyNames}
+                  schema={resourceSchema.schema}
+                  resource={resourceSchema.name}
+                  size="icon-xs"
+                  variant="outline"
+                  className="size-5 opacity-0 transition-opacity group-hover:opacity-100 [&_svg]:size-3"
+                >
+                  <ArrowUpRightIcon />
+                </DetailRecordTrigger>
+              )
+            },
+            size: 40,
+            enableSorting: false,
+            enableHiding: false,
+            enableColumnFilter: false,
           },
-          size: 40,
-          enableSorting: false,
-          enableHiding: false,
-          enableColumnFilter: false,
-        },
-      ]
-    : []
+        ]
+      : []
 
   return [
     ...selectColumns,
-    ...(actions.length > 0
+    ...(actions.length > 0 && !readOnly
       ? [
           {
             id: "actions",
