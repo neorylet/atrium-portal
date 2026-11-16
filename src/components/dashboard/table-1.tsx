@@ -22,6 +22,7 @@ import {
   TableRow,
 } from "#/components/ui/table"
 import type { DatabaseSchemas } from "#/lib/database-meta.types"
+import { formatDate } from "#/lib/format"
 import { widgetDataQueryOptions } from "#/lib/supabase/data/dashboard"
 import type { DashboardWidgetSchema } from "#/lib/supabase/data/dashboard"
 
@@ -102,37 +103,45 @@ export function Table1Widget<S extends DatabaseSchemas>({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {columns.map((column) => (
+                <TableHead
+                  key={column}
+                  className="font-medium whitespace-normal"
+                >
+                  {column.charAt(0).toUpperCase() +
+                    column.slice(1).replace(/_/g, " ")}
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.map((row, index) => (
+              <TableRow
+                key={index}
+                onClick={
+                  row.link
+                    ? () => navigate({ to: row.link as never })
+                    : undefined
+                }
+                className={row.link ? "cursor-pointer" : undefined}
+              >
                 {columns.map((column) => (
-                  <TableHead key={column} className="font-medium">
-                    {column.charAt(0).toUpperCase() +
-                      column.slice(1).replace(/_/g, " ")}
-                  </TableHead>
+                  <TableCell
+                    key={column}
+                    className="whitespace-normal break-words"
+                  >
+                    {column.includes("date") && row[column]
+                      ? formatDate(row[column])
+                      : row[column] || "-"}
+                  </TableCell>
                 ))}
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((row, index) => (
-                <TableRow
-                  key={index}
-                  onClick={
-                    row.link
-                      ? () => navigate({ to: row.link as never })
-                      : undefined
-                  }
-                  className={row.link ? "cursor-pointer" : undefined}
-                >
-                  {columns.map((column) => (
-                    <TableCell key={column}>{row[column] || "-"}</TableCell>
-                  ))}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+            ))}
+          </TableBody>
+        </Table>
         {widget.caption && (
           <p className="mt-2 text-xs text-muted-foreground">{widget.caption}</p>
         )}
