@@ -25,9 +25,7 @@ export function DateField({ columnMetadata }: FieldProps) {
             <span className="text-muted-foreground">DEFAULT VALUE</span>
           ) : field.state.value === null ? (
             <span className="text-muted-foreground">NULL</span>
-          ) : (
-            <span className="text-muted-foreground">EMPTY</span>
-          )}
+          ) : null}
         </div>
       </ButtonGroup>
       <FieldOptionDropdown

@@ -71,25 +71,29 @@ export function ForeignKeyField({
           />
         </ButtonGroup>
       )}
-      <FieldOptionDropdown
-        columnMetadata={columnMetadata}
-        setValue={(value) => field.handleChange(value)}
-      >
-        <DropdownMenuItem onClick={() => setOpen(true)}>
-          Select Record
-        </DropdownMenuItem>
-      </FieldOptionDropdown>
-      {open && (
-        <ForeignTableSheet
-          open={open}
-          onOpenChange={setOpen}
-          relationship={relationship}
-          setRecord={(record) => {
-            field.handleChange(record[relationship.target_column_name])
-            applyFill(record)
-            setOpen(false)
-          }}
-        />
+      {!joinConfig && (
+        <>
+          <FieldOptionDropdown
+            columnMetadata={columnMetadata}
+            setValue={(value) => field.handleChange(value)}
+          >
+            <DropdownMenuItem onClick={() => setOpen(true)}>
+              Select Record
+            </DropdownMenuItem>
+          </FieldOptionDropdown>
+          {open && (
+            <ForeignTableSheet
+              open={open}
+              onOpenChange={setOpen}
+              relationship={relationship}
+              setRecord={(record) => {
+                field.handleChange(record[relationship.target_column_name])
+                applyFill(record)
+                setOpen(false)
+              }}
+            />
+          )}
+        </>
       )}
     </ButtonGroup>
   )

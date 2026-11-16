@@ -418,7 +418,9 @@ export function getColumnMetadata(
     case "text":
       return {
         ...baseOptions,
-        variant: "long_text",
+        variant:
+          (commentMeta.variant as ColumnFieldMetadata["variant"] | undefined) ??
+          "long_text",
         filterVariant: "text",
         icon: baseOptions.icon ?? (
           <code className="font-mono text-sm text-muted-foreground">AB</code>

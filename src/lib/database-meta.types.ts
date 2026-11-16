@@ -421,6 +421,7 @@ export type ColumnMetadata = {
   placeholder?: string
   icon?: IconName
   aggregate?: AggregateFunction
+  variant?: string
   hidden_in_form?: boolean
   hidden_in_table?: boolean
 }

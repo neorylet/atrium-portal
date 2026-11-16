@@ -58,9 +58,11 @@ export function ResourceUpdateForm({
     primaryKeys.map((k) => [k.name, record[k.name]])
   )
 
-  const editableCols = columnsSchema.filter(
-    (col) => !isSkippedForUpdate(col, primaryKeys) && (col.is_updatable ?? true)
-  )
+  const editableCols = useMemo(() => {
+    return columnsSchema.filter(
+      (col) => !isSkippedForUpdate(col, primaryKeys) && (col.is_updatable ?? true)
+    )
+  }, [columnsSchema, primaryKeys])
 
   const defaultValues = useMemo(() => 
     Object.fromEntries(
