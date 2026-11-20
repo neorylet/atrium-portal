@@ -51,7 +51,7 @@ export function SignInForm() {
 
       <OAuthProviderButtons providers={authConfig.providers} />
 
-      {authConfig.providers.length > 0 && authConfig.emailEnabled && (
+      {authConfig.providers.length > 0 && (
         <div className="flex items-center gap-3">
           <Separator className="flex-1" />
           <span className="text-xs text-muted-foreground">or</span>
@@ -59,100 +59,91 @@ export function SignInForm() {
         </div>
       )}
 
-      {authConfig.emailEnabled ? (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            form.handleSubmit()
-          }}
-        >
-          <FieldGroup>
-            <form.Field
-              name="email"
-              validators={{
-                onChange: ({ value }) =>
-                  !value
-                    ? "Email is required"
-                    : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
-                      ? "Enter a valid email address"
-                      : undefined,
-              }}
-            >
-              {(field) => (
-                <Field>
-                  <FieldLabel htmlFor={field.name}>Email</FieldLabel>
-                  <Input
-                    id={field.name}
-                    type="email"
-                    placeholder="you@example.com"
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                  />
-                  <FieldError
-                    errors={field.state.meta.errors.map((e) => ({
-                      message: String(e),
-                    }))}
-                  />
-                </Field>
-              )}
-            </form.Field>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          form.handleSubmit()
+        }}
+      >
+        <FieldGroup>
+          <form.Field
+            name="email"
+            validators={{
+              onChange: ({ value }) =>
+                !value
+                  ? "Email is required"
+                  : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+                    ? "Enter a valid email address"
+                    : undefined,
+            }}
+          >
+            {(field) => (
+              <Field>
+                <FieldLabel htmlFor={field.name}>Email</FieldLabel>
+                <Input
+                  id={field.name}
+                  type="email"
+                  placeholder="you@example.com"
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                />
+                <FieldError
+                  errors={field.state.meta.errors.map((e) => ({
+                    message: String(e),
+                  }))}
+                />
+              </Field>
+            )}
+          </form.Field>
 
-            <form.Field
-              name="password"
-              validators={{
-                onChange: ({ value }) =>
-                  !value ? "Password is required" : undefined,
-              }}
-            >
-              {(field) => (
-                <Field>
-                  <div className="flex items-center justify-between">
-                    <FieldLabel htmlFor={field.name}>Password</FieldLabel>
-                    <Link
-                      to="/auth/forgot-password"
-                      className="text-sm text-muted-foreground hover:text-foreground"
-                    >
-                      Forgot password?
-                    </Link>
-                  </div>
-                  <Input
-                    id={field.name}
-                    type="password"
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                  />
-                  <FieldError
-                    errors={field.state.meta.errors.map((e) => ({
-                      message: String(e),
-                    }))}
-                  />
-                </Field>
-              )}
-            </form.Field>
+          <form.Field
+            name="password"
+            validators={{
+              onChange: ({ value }) =>
+                !value ? "Password is required" : undefined,
+            }}
+          >
+            {(field) => (
+              <Field>
+                <div className="flex items-center justify-between">
+                  <FieldLabel htmlFor={field.name}>Password</FieldLabel>
+                  <Link
+                    to="/auth/forgot-password"
+                    className="text-sm text-muted-foreground hover:text-foreground"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+                <Input
+                  id={field.name}
+                  type="password"
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                />
+                <FieldError
+                  errors={field.state.meta.errors.map((e) => ({
+                    message: String(e),
+                  }))}
+                />
+              </Field>
+            )}
+          </form.Field>
 
-            <form.Subscribe selector={(state) => state.isSubmitting}>
-              {(isSubmitting) => (
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? "Signing in…" : "Sign in"}
-                </Button>
-              )}
-            </form.Subscribe>
-          </FieldGroup>
-        </form>
-      ) : (
-        !authConfig.phoneEnabled &&
-        authConfig.providers.length === 0 && (
-          <p className="text-center text-sm text-muted-foreground">
-            Sign-in is not configured. Contact your administrator.
-          </p>
-        )
-      )}
+          <form.Subscribe selector={(state) => state.isSubmitting}>
+            {(isSubmitting) => (
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Signing in…" : "Sign in"}
+              </Button>
+            )}
+          </form.Subscribe>
+        </FieldGroup>
+      </form>
 
       <AuthMethodLinks
         authConfig={authConfig}

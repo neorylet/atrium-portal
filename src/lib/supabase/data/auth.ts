@@ -46,7 +46,6 @@ export const authConfigQueryOptions = () =>
       if (!response.ok) return DEFAULT_AUTH_CONFIG
 
       const settings: GoTrueSettings = await response.json()
-      const emailEnabled = settings.external.email === true
       const phoneEnabled = settings.external.phone === true
 
       const providers = Object.entries(settings.external)
@@ -61,7 +60,7 @@ export const authConfigQueryOptions = () =>
 
       return {
         signupEnabled: !settings.disable_signup,
-        emailEnabled,
+        emailEnabled: true, // Atrium Portal relies on email/password login
         phoneEnabled,
         providers,
       }
