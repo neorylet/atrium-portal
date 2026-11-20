@@ -1,6 +1,7 @@
 import { useState } from "react"
 
 import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
 
 import {
   Timeline,
@@ -10,6 +11,7 @@ import {
   TimelineSeparator,
 } from "#/components/reui/timeline"
 import { useAuthUser } from "#/hooks/use-user"
+import { getErrorMessage } from "#/lib/errors"
 import type { ResourceComment } from "#/lib/supabase/data/resource"
 import {
   deleteCommentMutationOptions,
@@ -53,6 +55,9 @@ export function ResourceComments({
     onSuccess: () => {
       setNewContent("")
       invalidate()
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error, "Failed to post comment"))
     },
   })
 

@@ -9,6 +9,7 @@ import {
   isAcceptedFileType,
 } from "#/hooks/use-file-upload"
 import type { FileColumnMetadata } from "#/lib/database-meta.types"
+import { getErrorMessage } from "#/lib/errors"
 import { formatFileSize } from "#/lib/files"
 import { supabase } from "#/lib/supabase/client"
 import { cn } from "#/lib/utils"
@@ -81,7 +82,7 @@ export function FileField({ columnMetadata, columnSchema }: FileFieldProps) {
       field.handleChange(filePath)
       toast.success("File uploaded successfully")
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to upload file")
+      toast.error(getErrorMessage(error, "Failed to upload file"))
     } finally {
       setIsUploading(false)
     }

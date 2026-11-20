@@ -444,7 +444,7 @@ export type EnumColumnMetadata = ColumnMetadata & {
 }
 
 export type FileColumnMetadata = ColumnMetadata & {
-  accept?: string
+  accept?: string | string[]
   max_files?: number
   max_size?: number
 }
