@@ -4,6 +4,10 @@ import { FileUpIcon, XIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "#/components/ui/button"
+import {
+  DEFAULT_MAX_FILE_SIZE,
+  isAcceptedFileType,
+} from "#/hooks/use-file-upload"
 import type { FileColumnMetadata } from "#/lib/database-meta.types"
 import { formatFileSize } from "#/lib/files"
 import { supabase } from "#/lib/supabase/client"
@@ -15,7 +19,7 @@ import { useFieldContext } from "../form-hook"
 export function FileField({ columnMetadata, columnSchema }: FileFieldProps) {
   const field = useFieldContext<string>()
   const config = JSON.parse(columnSchema.comment ?? "{}") as FileColumnMetadata
-  const maxSize = config.max_size ?? 5 * 1024 * 1024
+  const maxSize = config.max_size ?? DEFAULT_MAX_FILE_SIZE
   const maxFiles = config.max_files ?? 1
   const accept = config.accept ?? "*"
 
@@ -50,6 +54,18 @@ export function FileField({ columnMetadata, columnSchema }: FileFieldProps) {
   }, [filePath])
 
   const handleFileUpload = async (file: File) => {
+    if (file.size > maxSize) {
+      toast.error(
+        `File "${file.name}" exceeds the maximum size of ${formatFileSize(maxSize)}.`
+      )
+      return
+    }
+
+    if (!isAcceptedFileType(file, accept)) {
+      toast.error(`File "${file.name}" is not an accepted file type.`)
+      return
+    }
+
     setIsUploading(true)
     try {
       const fileName = `${Math.random().toString(36).substring(2, 15)}-${file.name}`
@@ -112,6 +128,7 @@ export function FileField({ columnMetadata, columnSchema }: FileFieldProps) {
         <>
           <input
             type="file"
+            accept={Array.isArray(accept) ? accept.join(",") : accept}
             onChange={(e) => {
               const file = e.target.files?.[0]
               if (file) handleFileUpload(file)
@@ -141,7 +158,13 @@ export function FileField({ columnMetadata, columnSchema }: FileFieldProps) {
                 Drag & drop or click to browse
               </p>
               <div className="flex flex-wrap justify-center gap-1 text-xs text-muted-foreground/70">
-                <span>All files</span>
+                <span>
+                  {Array.isArray(accept)
+                    ? accept.join(", ")
+                    : accept === "*"
+                      ? "All files"
+                      : accept}
+                </span>
                 <span>∙</span>
                 <span>Up to {formatFileSize(maxSize)}</span>
               </div>

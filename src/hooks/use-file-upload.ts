@@ -16,10 +16,41 @@ export type FileWithPreview = {
   preview?: string
 }
 
+export const DEFAULT_MAX_FILE_SIZE = 10 * 1024 * 1024
+
+const ACCEPT_ALL = "*"
+
+const getAcceptedTypes = (accept: string | string[] | undefined): string[] =>
+  (Array.isArray(accept) ? accept : [accept ?? ACCEPT_ALL])
+    .flatMap((value) => value.split(","))
+    .map((value) => value.trim())
+    .filter(Boolean)
+
+export const isAcceptedFileType = (
+  file: Pick<File, "name" | "type">,
+  accept: string | string[] | undefined
+): boolean => {
+  const acceptedTypes = getAcceptedTypes(accept)
+  if (acceptedTypes.includes(ACCEPT_ALL)) return true
+
+  const fileType = file.type || ""
+  const fileExtension = `.${file.name.split(".").pop() ?? ""}`
+
+  return acceptedTypes.some((type) => {
+    if (type.startsWith(".")) {
+      return fileExtension.toLowerCase() === type.toLowerCase()
+    }
+    if (type.endsWith("/*")) {
+      return fileType.startsWith(type.slice(0, -1))
+    }
+    return fileType === type
+  })
+}
+
 export type FileUploadOptions = {
   maxFiles?: number // Only used when multiple is true, defaults to Infinity
   maxSize?: number // in bytes
-  accept?: string
+  accept?: string | string[]
   multiple?: boolean // Defaults to false
   initialFiles?: FileMetadata[]
   onFilesChange?: (files: FileWithPreview[]) => void // Callback when files change
@@ -56,8 +87,8 @@ export const useFileUpload = (
 ): [FileUploadState, FileUploadActions] => {
   const {
     maxFiles = Number.POSITIVE_INFINITY,
-    maxSize = Number.POSITIVE_INFINITY,
-    accept = "*",
+    maxSize = DEFAULT_MAX_FILE_SIZE,
+    accept = ACCEPT_ALL,
     multiple = false,
     initialFiles = [],
     onFilesChange,
@@ -89,25 +120,8 @@ export const useFileUpload = (
         }
       }
 
-      if (accept !== "*") {
-        const acceptedTypes = accept.split(",").map((type) => type.trim())
-        const fileType = file instanceof File ? file.type || "" : file.type
-        const fileExtension = `.${file instanceof File ? file.name.split(".").pop() : file.name.split(".").pop()}`
-
-        const isAccepted = acceptedTypes.some((type) => {
-          if (type.startsWith(".")) {
-            return fileExtension.toLowerCase() === type.toLowerCase()
-          }
-          if (type.endsWith("/*")) {
-            const baseType = type.split("/")[0]
-            return fileType.startsWith(`${baseType}/`)
-          }
-          return fileType === type
-        })
-
-        if (!isAccepted) {
-          return `File "${file instanceof File ? file.name : file.name}" is not an accepted file type.`
-        }
+      if (!isAcceptedFileType(file, accept)) {
+        return `File "${file.name}" is not an accepted file type.`
       }
 
       return null
@@ -369,7 +383,8 @@ export const useFileUpload = (
         ...props,
         type: "file" as const,
         onChange: handleFileChange,
-        accept: props.accept || accept,
+        accept:
+          props.accept || (Array.isArray(accept) ? accept.join(",") : accept),
         multiple: props.multiple !== undefined ? props.multiple : multiple,
         ref: inputRef,
       }
