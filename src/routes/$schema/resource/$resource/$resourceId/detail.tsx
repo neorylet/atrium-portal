@@ -1,4 +1,4 @@
-import { useSuspenseQuery } from "@tanstack/react-query"
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
 import { InviteMemberForm } from "#/components/organisation/InviteMemberForm"
 import {
   Link,
@@ -14,6 +14,8 @@ import type { ErrorComponentProps } from "@tanstack/react-router"
 import { AlertCircleIcon, FileXIcon } from "lucide-react"
 
 import { DefaultHeader } from "#/components/layouts/default-header"
+import { ResourceAuditTimeline } from "#/components/resource/audit/resource-audit-timeline"
+import { ResourceComments } from "#/components/resource/comments/resource-comments"
 import { addEmbedKeys } from "#/components/resource/detail/add-embed-keys"
 import { InvoiceReceipt } from "#/components/resource/detail/invoice-receipt"
 import { ResourceDetailHeader } from "#/components/resource/detail/resource-detail-header"
@@ -34,9 +36,12 @@ import type { TableMetadata } from "#/lib/database-meta.types"
 import { isTableSchema } from "#/lib/database-meta.types"
 import { formatTitle } from "#/lib/format"
 import { pageTitle } from "#/lib/page-title"
+import { userPermissionsQueryOptions } from "#/lib/supabase/data/core"
 import { relatedTablesSchemaQueryOptions } from "#/lib/supabase/data/meta"
 import {
   resourceActionsQueryOptions,
+  resourceAuditLogsQueryOptions,
+  resourceCommentsQueryOptions,
   singleResourceDataQueryOptions,
 } from "#/lib/supabase/data/resource"
 
@@ -194,7 +199,8 @@ export const Route = createFileRoute(
 function RouteComponent() {
   const { schema, resource, resourceId } = Route.useParams()
   const { embeddedTables, pkName } = Route.useLoaderData()
-  const { tableSchema, columnsSchema } = Route.useRouteContext()
+  const { tableSchema, columnsSchema, permissions, authUser } =
+    Route.useRouteContext()
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -205,6 +211,21 @@ function RouteComponent() {
   )
   const resourceDisplayName = tableMeta.name ?? formatTitle(resource)
   const allowedTabs = tableMeta.detail?.tabs
+
+  const { data: auditPermissions } = useQuery({
+    ...userPermissionsQueryOptions("supasheet"),
+    enabled: !!authUser,
+  })
+  const canViewComments = hasResourcePermission(permissions, {
+    schema,
+    resource,
+    action: "select",
+  })
+  const canViewActivity = hasResourcePermission(auditPermissions, {
+    schema: "supasheet",
+    resource: "audit_logs",
+    action: "select",
+  })
 
   const basePath = `/${schema}/resource/${resource}/${resourceId}/detail`
   const MAIN_TAB = "__main__"
@@ -220,6 +241,12 @@ function RouteComponent() {
 
   const allTabs: { id: string; label: string; path: string }[] = [
     { id: MAIN_TAB, label: "Detail", path: basePath },
+    ...(canViewComments
+      ? [{ id: "comments", label: "Comments", path: `${basePath}/comments` }]
+      : []),
+    ...(canViewActivity
+      ? [{ id: "activity", label: "Activity", path: `${basePath}/activity` }]
+      : []),
     ...embeddedTables.map((r) => ({
       id: r.__embedKey,
       label: formatTitle(r.__embedKey),
@@ -230,7 +257,12 @@ function RouteComponent() {
 
   const tabs = allowedTabs
     ? allTabs.filter(
-        (t) => t.id === MAIN_TAB || t.id === "invite" || allowedTabs.includes(t.id)
+        (t) =>
+          t.id === MAIN_TAB ||
+          t.id === "comments" ||
+          t.id === "activity" ||
+          t.id === "invite" ||
+          allowedTabs.includes(t.id)
       )
     : allTabs
 
@@ -284,7 +316,19 @@ function RouteComponent() {
             </Tabs>
           ) : null}
           
-          {currentTab === "invite" ? (
+          {currentTab === "comments" ? (
+            <ResourceCommentsPanel
+              schema={schema}
+              resource={resource}
+              resourceId={resourceId}
+            />
+          ) : currentTab === "activity" ? (
+            <ResourceAuditPanel
+              schema={schema}
+              resource={resource}
+              resourceId={resourceId}
+            />
+          ) : currentTab === "invite" ? (
             <div className="flex flex-col gap-6 max-w-2xl pt-4">
               <div>
                 <h2 className="text-xl font-semibold tracking-tight">Invite Member</h2>
@@ -301,4 +345,43 @@ function RouteComponent() {
       </div>
     </>
   )
+}
+
+function ResourceCommentsPanel({
+  schema,
+  resource,
+  resourceId,
+}: {
+  schema: string
+  resource: string
+  resourceId: string
+}) {
+  const { data: comments = [] } = useQuery(
+    resourceCommentsQueryOptions(schema, resource, resourceId)
+  )
+
+  return (
+    <ResourceComments
+      schema={schema}
+      resource={resource}
+      recordId={resourceId}
+      comments={comments}
+    />
+  )
+}
+
+function ResourceAuditPanel({
+  schema,
+  resource,
+  resourceId,
+}: {
+  schema: string
+  resource: string
+  resourceId: string
+}) {
+  const { data: logs = [] } = useQuery(
+    resourceAuditLogsQueryOptions(schema, resource, resourceId)
+  )
+
+  return <ResourceAuditTimeline logs={logs} />
 }

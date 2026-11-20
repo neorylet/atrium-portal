@@ -27,8 +27,7 @@ export const Route = createFileRoute(
   loader: async ({ context, params }) => {
     const { schema, resource, resourceId, tab } = params
     
-    // If it's the invite tab, exit early so the loader doesn't crash
-    if (tab === "invite") return null as any
+    if (["invite", "comments", "activity"].includes(tab)) return null as any
 
     const relatedTablesSchema = await context.queryClient.query({
       ...relatedTablesSchemaQueryOptions(schema, resource),
@@ -153,8 +152,8 @@ function RouteComponent() {
     : oneToOneUpdatePrivilege
 
   // 2. NOW IT IS SAFE TO RETURN EARLY
-  if (tab === "invite" || !loaderData) {
-    return null // The router will render invite.tsx instead
+  if (["invite", "comments", "activity"].includes(tab) || !loaderData) {
+    return null
   }
 
   const many = oneToMany ?? manyToMany

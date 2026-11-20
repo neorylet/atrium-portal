@@ -48,20 +48,23 @@ export function ResourceRecordMenu({
       label: "Detail",
       icon: FileTextIcon,
       to: "/$schema/resource/$resource/$resourceId/detail" as const,
+      tab: undefined,
     },
     {
-      id: "comment",
+      id: "comments",
       label: "Comments",
       icon: MessageSquareIcon,
-      to: "/$schema/resource/$resource/$resourceId/comment" as const,
+      to: "/$schema/resource/$resource/$resourceId/detail/$tab" as const,
+      tab: "comments" as const,
     },
     ...(canViewAudit
       ? [
           {
-            id: "audit",
+            id: "activity",
             label: "Audit Log",
             icon: HistoryIcon,
-            to: "/$schema/resource/$resource/$resourceId/audit" as const,
+            to: "/$schema/resource/$resource/$resourceId/detail/$tab" as const,
+            tab: "activity" as const,
           },
         ]
       : []),
@@ -69,8 +72,11 @@ export function ResourceRecordMenu({
 
   const segments = location.pathname.split("/")
   const resourceIdIndex = segments.indexOf(resourceId)
+  const nextSegment = segments[resourceIdIndex + 2]
   const activeSegment =
-    resourceIdIndex >= 0 ? segments[resourceIdIndex + 1] : undefined
+    nextSegment === "comments" || nextSegment === "activity"
+      ? nextSegment
+      : "detail"
   const currentView =
     views.find((view) => view.id === activeSegment) ?? views[0]
   const CurrentIcon = currentView.icon
@@ -78,7 +84,11 @@ export function ResourceRecordMenu({
   function handleViewChange(value: string) {
     const view = views.find((v) => v.id === value)
     if (!view) return
-    navigate({ to: view.to, params })
+    if (view.tab) {
+      void navigate({ to: view.to, params: { ...params, tab: view.tab } })
+      return
+    }
+    void navigate({ to: view.to, params })
   }
 
   return (
