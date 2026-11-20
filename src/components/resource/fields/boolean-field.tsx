@@ -24,13 +24,7 @@ export function BooleanField({ columnMetadata }: FieldProps) {
           disabled={columnMetadata.disabled}
         >
           <SelectTrigger className="w-full [&>svg]:hidden">
-            {field.state.value === "" && columnMetadata.defaultValue ? (
-              <span className="text-muted-foreground">DEFAULT VALUE</span>
-            ) : field.state.value === null ? (
-              <span className="text-muted-foreground">NULL</span>
-            ) : (
-              <SelectValue placeholder="Select an option" />
-            )}
+            <SelectValue placeholder="Select an option" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="true">True</SelectItem>

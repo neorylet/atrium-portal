@@ -20,13 +20,6 @@ export function DateField({ columnMetadata }: FieldProps) {
           onBlur={field.handleBlur}
           disabled={columnMetadata.disabled}
         />
-        <div className="absolute top-2.5 right-10 text-xs">
-          {field.state.value === "" && columnMetadata.defaultValue ? (
-            <span className="text-muted-foreground">DEFAULT VALUE</span>
-          ) : field.state.value === null ? (
-            <span className="text-muted-foreground">NULL</span>
-          ) : null}
-        </div>
       </ButtonGroup>
       <FieldOptionDropdown
         columnMetadata={columnMetadata}

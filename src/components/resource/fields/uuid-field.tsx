@@ -7,13 +7,7 @@ import { FieldOptionDropdown } from "./field-option-dropdown"
 
 export function UuidField({ columnMetadata }: FieldProps) {
   const field = useFieldContext<unknown>()
-  const placeholder =
-    columnMetadata.placeholder ??
-    (field.state.value === "" && columnMetadata.defaultValue
-      ? "DEFAULT VALUE"
-      : field.state.value === null
-        ? "NULL"
-        : "EMPTY")
+  const placeholder = columnMetadata.placeholder ?? ""
 
   return (
     <ButtonGroup className="w-full">

@@ -35,13 +35,7 @@ export function CountryComboboxField({ columnMetadata, form }: FieldProps) {
   const currentValue = (field.state.value as string | null | undefined) ?? ""
   const selectedCountry = getCountryByCode(currentValue)
 
-  const placeholder =
-    columnMetadata.placeholder ??
-    (field.state.value === "" && columnMetadata.defaultValue
-      ? "DEFAULT VALUE"
-      : field.state.value === null
-        ? "NULL"
-        : "Select country...")
+  const placeholder = columnMetadata.placeholder ?? "Select country..."
 
   const displayLabel = selectedCountry
     ? formatCountryLabel(selectedCountry.code)

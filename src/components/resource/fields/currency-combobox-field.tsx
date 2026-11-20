@@ -30,13 +30,7 @@ export function CurrencyComboboxField({ columnMetadata }: FieldProps) {
   const currentValue = (field.state.value as string | null | undefined) ?? ""
   const selectedCurrency = getCurrencyByCode(String(currentValue))
 
-  const placeholder =
-    columnMetadata.placeholder ??
-    (field.state.value === "" && columnMetadata.defaultValue
-      ? "DEFAULT VALUE"
-      : field.state.value === null
-        ? "NULL"
-        : "Select currency...")
+  const placeholder = columnMetadata.placeholder ?? "Select currency..."
 
   const displayLabel = selectedCurrency
     ? formatCurrencyLabel(selectedCurrency.code)

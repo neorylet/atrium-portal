@@ -31,12 +31,7 @@ export function ForeignKeyField({
 
   const behavior = tableMetadata?.fields?.lookups?.[field.name]
 
-  const placeholder =
-    field.state.value === "" && columnMetadata.defaultValue
-      ? "DEFAULT VALUE"
-      : field.state.value === null
-        ? "NULL"
-        : "EMPTY"
+  const placeholder = columnMetadata.placeholder ?? ""
 
   const applyFill = (record: Record<string, unknown>) => {
     if (!behavior?.fill?.length || !form) return

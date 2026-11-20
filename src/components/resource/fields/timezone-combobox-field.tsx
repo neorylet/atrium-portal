@@ -31,13 +31,7 @@ export function TimezoneComboboxField({ columnMetadata }: FieldProps) {
 
   const currentValue = (field.state.value as string | null | undefined) ?? ""
 
-  const placeholder =
-    columnMetadata.placeholder ??
-    (field.state.value === "" && columnMetadata.defaultValue
-      ? "DEFAULT VALUE"
-      : field.state.value === null
-        ? "NULL"
-        : "Select timezone...")
+  const placeholder = columnMetadata.placeholder ?? "Select timezone..."
 
   const displayLabel = currentValue
     ? formatTimezoneLabel(currentValue)

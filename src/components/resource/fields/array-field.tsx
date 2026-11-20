@@ -84,11 +84,6 @@ export function ArrayField({
             Empty array []
           </p>
         )}
-        {isDefault && (
-          <p className="py-2 text-center text-sm text-muted-foreground">
-            DEFAULT VALUE
-          </p>
-        )}
         <SortableContent render={<div className="space-y-2" />}>
           <>
             {Array.isArray(value) &&
