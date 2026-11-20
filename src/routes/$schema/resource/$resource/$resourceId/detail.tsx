@@ -19,7 +19,6 @@ import { ResourceComments } from "#/components/resource/comments/resource-commen
 import { addEmbedKeys } from "#/components/resource/detail/add-embed-keys"
 import { InvoiceReceipt } from "#/components/resource/detail/invoice-receipt"
 import { ResourceDetailHeader } from "#/components/resource/detail/resource-detail-header"
-import { ResourceRecordMenu } from "#/components/resource/resource-record-menu"
 import { Button } from "#/components/ui/button"
 import { Card, CardContent, CardHeader } from "#/components/ui/card"
 import {
@@ -273,9 +272,7 @@ function RouteComponent() {
           { title: resourceDisplayName, url: `/${schema}/resource/${resource}` },
           { title: "Detail" },
         ]}
-      >
-        <ResourceRecordMenu schema={schema} resource={resource} resourceId={resourceId} />
-      </DefaultHeader>
+      />
       <div className="flex flex-1 flex-col">
         <div className="mx-auto w-full max-w-5xl px-4 py-4">
           {record && (

@@ -58,8 +58,6 @@ import { Route as CoreUsersUserIdIndexRouteImport } from './routes/core/users/$u
 import { Route as CoreUsersUserIdDangerRouteImport } from './routes/core/users/$userId/danger'
 import { Route as CoreUsersUserIdEditRouteImport } from './routes/core/users/$userId/edit'
 import { Route as CoreUsersUserIdSecurityRouteImport } from './routes/core/users/$userId/security'
-import { Route as SchemaResourceResourceResourceIdAuditRouteImport } from './routes/$schema/resource/$resource/$resourceId/audit'
-import { Route as SchemaResourceResourceResourceIdCommentRouteImport } from './routes/$schema/resource/$resource/$resourceId/comment'
 import { Route as SchemaResourceResourceResourceIdDetailRouteImport } from './routes/$schema/resource/$resource/$resourceId/detail'
 import { Route as SchemaResourceResourceCalendarCalendarIdRouteImport } from './routes/$schema/resource/$resource/calendar/$calendarId'
 import { Route as SchemaResourceResourceFormFormidRouteImport } from './routes/$schema/resource/$resource/form/$formid'
@@ -335,18 +333,6 @@ const CoreUsersUserIdSecurityRoute = CoreUsersUserIdSecurityRouteImport.update({
   path: '/security',
   getParentRoute: () => CoreUsersUserIdRouteRoute,
 } as any)
-const SchemaResourceResourceResourceIdAuditRoute =
-  SchemaResourceResourceResourceIdAuditRouteImport.update({
-    id: '/$resourceId/audit',
-    path: '/$resourceId/audit',
-    getParentRoute: () => SchemaResourceResourceRouteRoute,
-  } as any)
-const SchemaResourceResourceResourceIdCommentRoute =
-  SchemaResourceResourceResourceIdCommentRouteImport.update({
-    id: '/$resourceId/comment',
-    path: '/$resourceId/comment',
-    getParentRoute: () => SchemaResourceResourceRouteRoute,
-  } as any)
 const SchemaResourceResourceResourceIdDetailRoute =
   SchemaResourceResourceResourceIdDetailRouteImport.update({
     id: '/$resourceId/detail',
@@ -518,8 +504,6 @@ export interface FileRoutesByFullPath {
   '/$schema/resource/$resource/': typeof SchemaResourceResourceIndexRoute
   '/$schema/template/$template/': typeof SchemaTemplateTemplateIndexRoute
   '/core/users/$userId/': typeof CoreUsersUserIdIndexRoute
-  '/$schema/resource/$resource/$resourceId/audit': typeof SchemaResourceResourceResourceIdAuditRoute
-  '/$schema/resource/$resource/$resourceId/comment': typeof SchemaResourceResourceResourceIdCommentRoute
   '/$schema/resource/$resource/$resourceId/detail': typeof SchemaResourceResourceResourceIdDetailRouteWithChildren
   '/$schema/resource/$resource/calendar/$calendarId': typeof SchemaResourceResourceCalendarCalendarIdRouteWithChildren
   '/$schema/resource/$resource/form/$formid': typeof SchemaResourceResourceFormFormidRoute
@@ -584,8 +568,6 @@ export interface FileRoutesByTo {
   '/$schema/resource/$resource': typeof SchemaResourceResourceIndexRoute
   '/$schema/template/$template': typeof SchemaTemplateTemplateIndexRoute
   '/core/users/$userId': typeof CoreUsersUserIdIndexRoute
-  '/$schema/resource/$resource/$resourceId/audit': typeof SchemaResourceResourceResourceIdAuditRoute
-  '/$schema/resource/$resource/$resourceId/comment': typeof SchemaResourceResourceResourceIdCommentRoute
   '/$schema/resource/$resource/calendar/$calendarId': typeof SchemaResourceResourceCalendarCalendarIdRouteWithChildren
   '/$schema/resource/$resource/form/$formid': typeof SchemaResourceResourceFormFormidRoute
   '/$schema/resource/$resource/gallery/$galleryId': typeof SchemaResourceResourceGalleryGalleryIdRouteWithChildren
@@ -657,8 +639,6 @@ export interface FileRoutesById {
   '/$schema/resource/$resource/': typeof SchemaResourceResourceIndexRoute
   '/$schema/template/$template/': typeof SchemaTemplateTemplateIndexRoute
   '/core/users/$userId/': typeof CoreUsersUserIdIndexRoute
-  '/$schema/resource/$resource/$resourceId/audit': typeof SchemaResourceResourceResourceIdAuditRoute
-  '/$schema/resource/$resource/$resourceId/comment': typeof SchemaResourceResourceResourceIdCommentRoute
   '/$schema/resource/$resource/$resourceId/detail': typeof SchemaResourceResourceResourceIdDetailRouteWithChildren
   '/$schema/resource/$resource/calendar/$calendarId': typeof SchemaResourceResourceCalendarCalendarIdRouteWithChildren
   '/$schema/resource/$resource/form/$formid': typeof SchemaResourceResourceFormFormidRoute
@@ -732,8 +712,6 @@ export interface FileRouteTypes {
     | '/$schema/resource/$resource/'
     | '/$schema/template/$template/'
     | '/core/users/$userId/'
-    | '/$schema/resource/$resource/$resourceId/audit'
-    | '/$schema/resource/$resource/$resourceId/comment'
     | '/$schema/resource/$resource/$resourceId/detail'
     | '/$schema/resource/$resource/calendar/$calendarId'
     | '/$schema/resource/$resource/form/$formid'
@@ -798,8 +776,6 @@ export interface FileRouteTypes {
     | '/$schema/resource/$resource'
     | '/$schema/template/$template'
     | '/core/users/$userId'
-    | '/$schema/resource/$resource/$resourceId/audit'
-    | '/$schema/resource/$resource/$resourceId/comment'
     | '/$schema/resource/$resource/calendar/$calendarId'
     | '/$schema/resource/$resource/form/$formid'
     | '/$schema/resource/$resource/gallery/$galleryId'
@@ -870,8 +846,6 @@ export interface FileRouteTypes {
     | '/$schema/resource/$resource/'
     | '/$schema/template/$template/'
     | '/core/users/$userId/'
-    | '/$schema/resource/$resource/$resourceId/audit'
-    | '/$schema/resource/$resource/$resourceId/comment'
     | '/$schema/resource/$resource/$resourceId/detail'
     | '/$schema/resource/$resource/calendar/$calendarId'
     | '/$schema/resource/$resource/form/$formid'
@@ -1249,20 +1223,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CoreUsersUserIdSecurityRouteImport
       parentRoute: typeof CoreUsersUserIdRouteRoute
     }
-    '/$schema/resource/$resource/$resourceId/audit': {
-      id: '/$schema/resource/$resource/$resourceId/audit'
-      path: '/$resourceId/audit'
-      fullPath: '/$schema/resource/$resource/$resourceId/audit'
-      preLoaderRoute: typeof SchemaResourceResourceResourceIdAuditRouteImport
-      parentRoute: typeof SchemaResourceResourceRouteRoute
-    }
-    '/$schema/resource/$resource/$resourceId/comment': {
-      id: '/$schema/resource/$resource/$resourceId/comment'
-      path: '/$resourceId/comment'
-      fullPath: '/$schema/resource/$resource/$resourceId/comment'
-      preLoaderRoute: typeof SchemaResourceResourceResourceIdCommentRouteImport
-      parentRoute: typeof SchemaResourceResourceRouteRoute
-    }
     '/$schema/resource/$resource/$resourceId/detail': {
       id: '/$schema/resource/$resource/$resourceId/detail'
       path: '/$resourceId/detail'
@@ -1568,8 +1528,6 @@ interface SchemaResourceResourceRouteRouteChildren {
   SchemaResourceResourceSingleRoute: typeof SchemaResourceResourceSingleRoute
   SchemaResourceResourceTableRoute: typeof SchemaResourceResourceTableRouteWithChildren
   SchemaResourceResourceIndexRoute: typeof SchemaResourceResourceIndexRoute
-  SchemaResourceResourceResourceIdAuditRoute: typeof SchemaResourceResourceResourceIdAuditRoute
-  SchemaResourceResourceResourceIdCommentRoute: typeof SchemaResourceResourceResourceIdCommentRoute
   SchemaResourceResourceResourceIdDetailRoute: typeof SchemaResourceResourceResourceIdDetailRouteWithChildren
   SchemaResourceResourceCalendarCalendarIdRoute: typeof SchemaResourceResourceCalendarCalendarIdRouteWithChildren
   SchemaResourceResourceFormFormidRoute: typeof SchemaResourceResourceFormFormidRoute
@@ -1591,10 +1549,6 @@ const SchemaResourceResourceRouteRouteChildren: SchemaResourceResourceRouteRoute
     SchemaResourceResourceTableRoute:
       SchemaResourceResourceTableRouteWithChildren,
     SchemaResourceResourceIndexRoute: SchemaResourceResourceIndexRoute,
-    SchemaResourceResourceResourceIdAuditRoute:
-      SchemaResourceResourceResourceIdAuditRoute,
-    SchemaResourceResourceResourceIdCommentRoute:
-      SchemaResourceResourceResourceIdCommentRoute,
     SchemaResourceResourceResourceIdDetailRoute:
       SchemaResourceResourceResourceIdDetailRouteWithChildren,
     SchemaResourceResourceCalendarCalendarIdRoute:
