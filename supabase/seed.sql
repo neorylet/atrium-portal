@@ -47,11 +47,11 @@ insert into public.projects (id, org_id, name, description, status, start_date, 
 on conflict (id) do nothing;
 
 -- Insert Deliverables
-insert into public.deliverables (id, org_id, project_id, title, description, status, due_date) values
-  ('d0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'Brand guidelines v2', 'Comprehensive brand style guide with logo usage, color codes, and typography specifications.', 'in_review', current_date + interval '3 days'),
-  ('d0000000-0000-4000-8000-000000000002', 'a0000000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000004', 'CONFIDENTIAL - Beta pricing deck', 'Internal pricing strategy presentation for executive review.', 'in_review', current_date - interval '2 days'),
-  ('d0000000-0000-4000-8000-000000000003', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000002', 'Homepage mockups', 'High-fidelity homepage designs with mobile responsive variations.', 'approved', current_date - interval '10 days'),
-  ('d0000000-0000-4000-8000-000000000004', 'a0000000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000004', 'Package mockups', '3D renderings of new packaging across product variants.', 'draft', current_date + interval '7 days')
+insert into public.deliverables (id, org_id, project_id, title, description, status, file_path, due_date) values
+  ('d0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'Brand guidelines v2', 'Comprehensive brand style guide with logo usage, color codes, and typography specifications.', 'in_review', 'dummy.pdf', current_date + interval '3 days'),
+  ('d0000000-0000-4000-8000-000000000002', 'a0000000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000004', 'CONFIDENTIAL - Beta pricing deck', 'Internal pricing strategy presentation for executive review.', 'in_review', 'dummy.pdf', current_date - interval '2 days'),
+  ('d0000000-0000-4000-8000-000000000003', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000002', 'Homepage mockups', 'High-fidelity homepage designs with mobile responsive variations.', 'approved', 'dummy.pdf', current_date - interval '10 days'),
+  ('d0000000-0000-4000-8000-000000000004', 'a0000000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000004', 'Package mockups', '3D renderings of new packaging across product variants.', 'draft', null, current_date + interval '7 days')
 on conflict (id) do nothing;
 
 -- ==========================================
@@ -59,17 +59,17 @@ on conflict (id) do nothing;
 -- ==========================================
 insert into public.invoices (id, org_id, project_id, invoice_number, status, amount, currency, issued_on, due_on, paid_on, notes) values
   -- ACME CORP (USD)
-  ('e0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'ATR-2026-0001', 'paid', 4800.00, 'USD', current_date - interval '45 days', current_date - interval '30 days', current_date - interval '32 days', 'Thank you for your business.'),
-  ('e0000000-0000-4000-8000-000000000002', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000002', 'ATR-2026-0003', 'sent', 12500.00, 'USD', current_date - interval '10 days', current_date + interval '20 days', null, 'Payment due within 30 days.'),
-  ('e0000000-0000-4000-8000-000000000003', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000003', 'ATR-2026-0004', 'paid', 2700.00, 'USD', current_date - interval '60 days', current_date - interval '45 days', current_date - interval '50 days', null),
-  ('e0000000-0000-4000-8000-000000000004', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'ATR-2026-0005', 'overdue', 600.00, 'USD', current_date - interval '50 days', current_date - interval '20 days', null, 'Website hosting renewal.'),
+  ('e0000000-0000-4000-8000-000000000001', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'ATR-2026-0001', 'draft', 4800.00, 'USD', current_date - interval '45 days', current_date - interval '30 days', null, 'Thank you for your business.'),
+  ('e0000000-0000-4000-8000-000000000002', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000002', 'ATR-2026-0003', 'draft', 12500.00, 'USD', current_date - interval '10 days', current_date + interval '20 days', null, 'Payment due within 30 days.'),
+  ('e0000000-0000-4000-8000-000000000003', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000003', 'ATR-2026-0004', 'draft', 2700.00, 'USD', current_date - interval '60 days', current_date - interval '45 days', null, null),
+  ('e0000000-0000-4000-8000-000000000004', 'a0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'ATR-2026-0005', 'draft', 600.00, 'USD', current_date - interval '50 days', current_date - interval '20 days', null, 'Website hosting renewal.'),
   ('e0000000-0000-4000-8000-000000000005', 'a0000000-0000-4000-8000-000000000001', null, 'ATR-2026-0006', 'draft', 1500.00, 'USD', current_date, current_date + interval '30 days', null, 'Q4 retainer - pending approval.'),
 
   -- BETA INDUSTRIES (PHP)
-  ('e0000000-0000-4000-8000-000000000006', 'a0000000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000004', 'ATR-2026-0002', 'overdue', 7777.00, 'PHP', current_date - interval '20 days', current_date - interval '5 days', null, 'Second reminder sent.'),
-  ('e0000000-0000-4000-8000-000000000007', 'a0000000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000004', 'ATR-2026-0007', 'sent', 3600.00, 'PHP', current_date - interval '5 days', current_date + interval '25 days', null, null),
-  ('e0000000-0000-4000-8000-000000000008', 'a0000000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000005', 'ATR-2026-0008', 'paid', 3500.00, 'PHP', current_date - interval '90 days', current_date - interval '75 days', current_date - interval '80 days', 'Booth design fully delivered.'),
-  ('e0000000-0000-4000-8000-000000000009', 'a0000000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000005', 'ATR-2026-0009', 'void', 5000.00, 'PHP', current_date - interval '120 days', current_date - interval '90 days', null, 'Cancelled due to project delay.'),
+  ('e0000000-0000-4000-8000-000000000006', 'a0000000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000004', 'ATR-2026-0002', 'draft', 7777.00, 'PHP', current_date - interval '20 days', current_date - interval '5 days', null, 'Second reminder sent.'),
+  ('e0000000-0000-4000-8000-000000000007', 'a0000000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000004', 'ATR-2026-0007', 'draft', 3600.00, 'PHP', current_date - interval '5 days', current_date + interval '25 days', null, null),
+  ('e0000000-0000-4000-8000-000000000008', 'a0000000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000005', 'ATR-2026-0008', 'draft', 3500.00, 'PHP', current_date - interval '90 days', current_date - interval '75 days', null, 'Booth design fully delivered.'),
+  ('e0000000-0000-4000-8000-000000000009', 'a0000000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000005', 'ATR-2026-0009', 'draft', 5000.00, 'PHP', current_date - interval '120 days', current_date - interval '90 days', null, 'Cancelled due to project delay.'),
   ('e0000000-0000-4000-8000-000000000010', 'a0000000-0000-4000-8000-000000000002', null, 'ATR-2026-0010', 'draft', 1800.00, 'PHP', current_date, current_date + interval '30 days', null, 'Monthly retainer.')
 on conflict (id) do nothing;
 
@@ -164,3 +164,12 @@ ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
 
 -- Force PostgREST to reload schema cache to recognize foreign key relationships
 NOTIFY pgrst, 'reload schema';
+
+update public.invoices set status = 'paid', paid_on = current_date - interval '32 days' where id = 'e0000000-0000-4000-8000-000000000001';
+update public.invoices set status = 'sent' where id = 'e0000000-0000-4000-8000-000000000002';
+update public.invoices set status = 'paid', paid_on = current_date - interval '50 days' where id = 'e0000000-0000-4000-8000-000000000003';
+update public.invoices set status = 'overdue' where id = 'e0000000-0000-4000-8000-000000000004';
+update public.invoices set status = 'overdue' where id = 'e0000000-0000-4000-8000-000000000006';
+update public.invoices set status = 'sent' where id = 'e0000000-0000-4000-8000-000000000007';
+update public.invoices set status = 'paid', paid_on = current_date - interval '80 days' where id = 'e0000000-0000-4000-8000-000000000008';
+update public.invoices set status = 'void' where id = 'e0000000-0000-4000-8000-000000000009';
