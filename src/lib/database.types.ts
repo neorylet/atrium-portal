@@ -219,6 +219,20 @@ isOneToOne: false
                   Relationships: [
 
                   ]
+                },"email_outbox": {
+                  Row: {
+                    "body": string,"created_at": string,"error_message": string | null,"id": string,"recipient_email": string,"sent_at": string | null,"status": string,"subject": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "body": string,"created_at"?: string,"error_message"?: string | null,"id"?: string,"recipient_email": string,"sent_at"?: string | null,"status"?: string,"subject": string
+                  }
+                  Update: {
+                    "body"?: string,"created_at"?: string,"error_message"?: string | null,"id"?: string,"recipient_email"?: string,"sent_at"?: string | null,"status"?: string,"subject"?: string
+                  }
+                  Relationships: [
+
+                  ]
                 },"notifications": {
                   Row: {
                     "body": string | null,"created_at": string,"created_by": string | null,"id": string,"link": string | null,"metadata": NonNullable<Json>,"title": string,"type": string
@@ -465,9 +479,6 @@ isOneToOne: false
               "schema": string
             }[]
                            },
-"get_storage_filename_as_uuid":
-{ Args: { "name": string }; Returns: string
-                           },
 "get_tables":
 { Args: { "action"?: string,"p_caller"?: string,"schema_name"?: string,"table_name"?: string }; Returns: {
               "bytes": number | null,
@@ -495,11 +506,8 @@ isOneToOne: false
               "comment": string,"id": number,"is_updatable": boolean,"name": string,"schema": string
             }[]
                            },
-"get_users_with_role":
-{ Args: { "p_role": string }; Returns: (string)[]
-                           },
-"get_users_with_table_privilege":
-{ Args: { "p_action"?: string,"p_schema": string,"p_table": string }; Returns: (string)[]
+"get_user_email":
+{ Args: { "p_user_id": string }; Returns: string
                            },
 "get_views":
 { Args: { "action"?: string,"p_caller"?: string,"schema_name"?: string,"view_name"?: string }; Returns: {
