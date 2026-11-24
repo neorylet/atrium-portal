@@ -17,14 +17,34 @@ Deno.serve(async (req) => {
     if (denied) return denied
 
     // 2. Parse the request body
+    const body = await req.json().catch(() => ({}))
     const {
       email,
       data: userData = {},
       redirectTo,
       org_id,
-    } = await req.json().catch(() => ({}))
+    } = body
 
     if (!email) return errorResponse("Missing email", 400)
+
+    const requestedRoles = [
+      body.role,
+      body.user_metadata?.role,
+      body.app_metadata?.role,
+      body.appMetadata?.role,
+      userData?.role,
+      userData?.user_metadata?.role,
+      userData?.app_metadata?.role,
+      userData?.appMetadata?.role,
+    ].filter(Boolean)
+
+    if (requestedRoles.some((role) => role !== "client")) {
+      return errorResponse("Only client role invites are allowed", 403)
+    }
+
+    const organisationId =
+      typeof org_id === "string" && org_id.trim() ? org_id : null
+    const siteUrl = Deno.env.get("SITE_URL") ?? "http://localhost:3000"
 
     const adminClient = createAdminClient()
 
@@ -33,7 +53,7 @@ Deno.serve(async (req) => {
       email,
       {
         data: { ...userData, name: email.split('@')[0] },
-        redirectTo: redirectTo || 'http://localhost:3000/auth/update-password',
+        redirectTo: redirectTo || `${siteUrl}/auth/update-password`,
       }
     )
 
@@ -46,10 +66,10 @@ Deno.serve(async (req) => {
 
     // 4. Set app_metadata so RLS and JWT hook work
     const { error: updateError } = await adminClient.auth.admin.updateUserById(userId, {
-      app_metadata: { 
-        role: 'client', 
-        org_id: org_id || null 
-      }
+      app_metadata: {
+        role: "client",
+        org_id: organisationId,
+      },
     })
 
     if (updateError) {
@@ -58,21 +78,21 @@ Deno.serve(async (req) => {
     }
 
     // 5. Insert into supasheet.users so the UI recognizes them immediately
-    if (org_id) {
+    if (organisationId) {
       // CORRECTED: .schema() must be called before .from()
       const { error: dbError } = await adminClient
-        .schema('supasheet')
-        .from('users')
-        .upsert({ 
-          id: userId, 
-          email: email, 
-          name: email.split('@')[0], 
-          org_id: org_id 
+        .schema("supasheet")
+        .from("users")
+        .upsert({
+          id: userId,
+          email: email,
+          name: email.split("@")[0],
+          org_id: organisationId,
         })
-        
+
       if (dbError) {
         console.error("admin-invite-user: dbError", dbError)
-        // We don't return an error here because the invite itself was successful
+        throw new Error("Failed to update user metadata: " + dbError.message)
       }
     }
 
