@@ -221,14 +221,14 @@ isOneToOne: false
                   ]
                 },"email_outbox": {
                   Row: {
-                    "body": string,"created_at": string,"error_message": string | null,"id": string,"recipient_email": string,"sent_at": string | null,"status": string,"subject": string
+                    "body": string,"claimed_at": string | null,"created_at": string,"error_message": string | null,"id": string,"recipient_email": string,"sent_at": string | null,"status": string,"subject": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "body": string,"created_at"?: string,"error_message"?: string | null,"id"?: string,"recipient_email": string,"sent_at"?: string | null,"status"?: string,"subject": string
+                    "body": string,"claimed_at"?: string | null,"created_at"?: string,"error_message"?: string | null,"id"?: string,"recipient_email": string,"sent_at"?: string | null,"status"?: string,"subject": string
                   }
                   Update: {
-                    "body"?: string,"created_at"?: string,"error_message"?: string | null,"id"?: string,"recipient_email"?: string,"sent_at"?: string | null,"status"?: string,"subject"?: string
+                    "body"?: string,"claimed_at"?: string | null,"created_at"?: string,"error_message"?: string | null,"id"?: string,"recipient_email"?: string,"sent_at"?: string | null,"status"?: string,"subject"?: string
                   }
                   Relationships: [
 
@@ -341,6 +341,11 @@ isOneToOne: false
           Functions: {
             "apply_template":
 { Args: { "p_schema": string,"p_target_table": string,"p_template_name": string }; Returns: number
+                           },
+"claim_email_outbox_batch":
+{ Args: { "p_limit"?: number,"p_stale_after"?: string }; Returns: {
+              "body": string,"id": string,"recipient_email": string,"subject": string
+            }[]
                            },
 "create_audit_log":
 { Args: { "p_caller_role"?: string,"p_metadata"?: Json,"p_new_data"?: Json,"p_old_data"?: Json,"p_operation": string,"p_record_id"?: string,"p_schema_name": string,"p_table_name": string }; Returns: string
